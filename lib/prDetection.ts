@@ -56,24 +56,60 @@ export async function detectRenfoPRs(
   return candidates;
 }
 
+// PRs sur distances fixes : distance minimale requise + distance extrapolée
+const SPLIT_PRS: Array<{ movement: string; distKm: number; minDistKm: number }> = [
+  { movement: 'Meilleur mile',          distKm: 1.609,  minDistKm: 1.5  },
+  { movement: 'Meilleur 5K',            distKm: 5,      minDistKm: 5    },
+  { movement: 'Meilleur 10K',           distKm: 10,     minDistKm: 10   },
+  { movement: 'Meilleur semi-marathon', distKm: 21.097, minDistKm: 21   },
+  { movement: 'Meilleur marathon',      distKm: 42.195, minDistKm: 42   },
+];
+
 // ─── Run : détecte les PRs de distance/allure ───────────────
 export async function detectRunPRs(
   userId: string,
   sessionId: string,
   sessionDate: string,
-  data: { distance?: number | null; pace?: string | null }
+  data: { distance?: number | null; pace?: string | null },
+  durationMin?: number | null,
 ): Promise<PRCandidate[]> {
   const candidates: PRCandidate[] = [];
 
+  // ── 1. Durée maximale ──────────────────────────────────────
+  if (durationMin && durationMin > 0) {
+    const { data: existingDur } = await supabase
+      .from('personal_records')
+      .select('value')
+      .eq('user_id', userId)
+      .eq('category', 'run')
+      .eq('movement', 'Course la plus longue (durée)')
+      .order('value', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const prevDur = existingDur?.value ?? null;
+    if (prevDur === null || durationMin > prevDur) {
+      candidates.push({
+        category: 'run',
+        movement: 'Course la plus longue (durée)',
+        value: durationMin,
+        unit: 'min',
+        previous_value: prevDur,
+        session_id: sessionId,
+        date: sessionDate,
+      });
+    }
+  }
+
   if (!data.distance || data.distance <= 0) return candidates;
 
-  // PR de distance (distance maximale)
+  // ── 2. Distance maximale ───────────────────────────────────
   const { data: existingDist } = await supabase
     .from('personal_records')
     .select('value')
     .eq('user_id', userId)
     .eq('category', 'run')
-    .eq('movement', 'Distance max')
+    .eq('movement', 'Course la plus longue (distance)')
     .order('value', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -82,7 +118,7 @@ export async function detectRunPRs(
   if (prevDist === null || data.distance > prevDist) {
     candidates.push({
       category: 'run',
-      movement: 'Distance max',
+      movement: 'Course la plus longue (distance)',
       value: data.distance,
       unit: 'km',
       previous_value: prevDist,
@@ -91,17 +127,19 @@ export async function detectRunPRs(
     });
   }
 
-  // PR allure (allure la plus rapide = valeur min en s/km)
+  // ── 3. Allure + splits fixes ───────────────────────────────
   if (data.pace) {
     const paceSeconds = parsePaceToSeconds(data.pace);
     if (paceSeconds > 0) {
+
+      // Allure 1km
       const { data: existingPace } = await supabase
         .from('personal_records')
         .select('value')
         .eq('user_id', userId)
         .eq('category', 'run')
-        .eq('movement', 'Allure 1km')
-        .order('value', { ascending: true })  // ascendant = valeur la plus petite = plus rapide
+        .eq('movement', 'Km le plus rapide')
+        .order('value', { ascending: true })
         .limit(1)
         .maybeSingle();
 
@@ -109,13 +147,43 @@ export async function detectRunPRs(
       if (prevPace === null || paceSeconds < prevPace) {
         candidates.push({
           category: 'run',
-          movement: 'Allure 1km',
+          movement: 'Km le plus rapide',
           value: paceSeconds,
           unit: 's/km',
           previous_value: prevPace,
           session_id: sessionId,
           date: sessionDate,
         });
+      }
+
+      // Mile, 5K, 10K, semi, marathon — seulement si distance suffisante
+      for (const pr of SPLIT_PRS) {
+        if (data.distance < pr.minDistKm) continue;
+
+        const splitTime = Math.round(paceSeconds * pr.distKm);
+
+        const { data: existing } = await supabase
+          .from('personal_records')
+          .select('value')
+          .eq('user_id', userId)
+          .eq('category', 'run')
+          .eq('movement', pr.movement)
+          .order('value', { ascending: true }) // plus petit = plus rapide
+          .limit(1)
+          .maybeSingle();
+
+        const prev = existing?.value ?? null;
+        if (prev === null || splitTime < prev) {
+          candidates.push({
+            category: 'run',
+            movement: pr.movement,
+            value: splitTime,
+            unit: 's',
+            previous_value: prev,
+            session_id: sessionId,
+            date: sessionDate,
+          });
+        }
       }
     }
   }

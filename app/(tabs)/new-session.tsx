@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import WodCustomBuilder, { WodBlock } from '../../components/WodCustomBuilder';
+import { detectRunPRs, detectRenfoPRs, detectCrossfitPR, savePRs } from '../../lib/prDetection';
 
 type SessionType = 'run' | 'crossfit' | 'renfo' | 'autre';
 type Visibility = 'private' | 'friends' | 'public';
@@ -137,7 +138,7 @@ export default function NewSessionScreen() {
     setLoading(true);
     setSaveError('');
     setSaveSuccess(false);
-    const { error } = await supabase.from('sessions').insert({
+    const { data: data2, error } = await supabase.from('sessions').insert({
       user_id: session.user.id,
       date,
       type,
@@ -147,11 +148,36 @@ export default function NewSessionScreen() {
       duration: duration ? parseInt(duration) : null,
       notes: notes || null,
       data: buildData(),
-    });
+    }).select('id').maybeSingle();
     setLoading(false);
     if (error) {
       setSaveError(error.message);
     } else {
+      // ── Détection automatique des PRs (séances terminées uniquement) ──
+      if (status === 'completed' && data2?.id && session?.user) {
+        const userId = session.user.id;
+        const sessionId = data2.id;
+        const dur = duration ? parseInt(duration) : null;
+        try {
+          if (type === 'run') {
+            const prs = await detectRunPRs(userId, sessionId, date,
+              { distance: parseFloat(distance) || null, pace: pace || null }, dur);
+            await savePRs(userId, prs);
+          } else if (type === 'renfo') {
+            const movs = renfoMovements
+              .filter(m => m.name)
+              .map(m => ({ name: m.name, weight: parseFloat(m.weight) || null, reps: parseInt(m.reps) || null }));
+            const prs = await detectRenfoPRs(userId, sessionId, date, movs);
+            await savePRs(userId, prs);
+          } else if (type === 'crossfit' && wodMode === 'benchmark' && selectedWodId) {
+            const wod = benchmarkWods.find(w => w.id === selectedWodId);
+            if (wod) {
+              const pr = await detectCrossfitPR(userId, sessionId, date, wod.name, wodScore);
+              if (pr) await savePRs(userId, [pr]);
+            }
+          }
+        } catch (_) { /* détection non bloquante */ }
+      }
       setSaveSuccess(true);
       setTimeout(() => router.replace('/(tabs)'), 1200);
     }

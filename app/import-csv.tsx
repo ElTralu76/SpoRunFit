@@ -7,8 +7,16 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { parseGarminIntervalCSV, GarminRunSummary } from '../lib/garminParser';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { detectRunPRs, savePRs } from '../lib/prDetection';
 
 type Step = 'pick' | 'date' | 'preview' | 'importing' | 'done';
+
+/** "5:30" → 5.5 (minutes décimales) */
+function parsePaceToMin(pace: string): number {
+  const m = pace.match(/^(\d+):(\d{2})$/);
+  if (!m) return 0;
+  return parseInt(m[1]) + parseInt(m[2]) / 60;
+}
 
 export default function ImportCSVScreen() {
   const { session } = useAuth();
@@ -103,6 +111,34 @@ export default function ImportCSVScreen() {
       setError(`Erreur : ${dbError.message} (code ${dbError.code})`);
       setStep('preview');
     } else {
+      // ── Détection automatique des PRs run ──────────────────
+      try {
+        // Récupère l'ID de la séance (update ou insert)
+        let finalSessionId = sessionId ?? null;
+        if (!isUpdateMode) {
+          const { data: inserted } = await supabase
+            .from('sessions')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .eq('date', sessionDate)
+            .eq('type', 'run')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          finalSessionId = inserted?.id ?? null;
+        }
+        if (finalSessionId) {
+          const durationMin = parsed.total_distance_km && parsed.avg_pace
+            ? Math.round(parsePaceToMin(parsed.avg_pace) * parsed.total_distance_km)
+            : null;
+          const prs = await detectRunPRs(
+            session.user.id, finalSessionId, sessionDate,
+            { distance: parsed.total_distance_km, pace: parsed.avg_pace },
+            durationMin,
+          );
+          await savePRs(session.user.id, prs);
+        }
+      } catch (_) { /* non bloquant */ }
       setStep('done');
     }
   }
