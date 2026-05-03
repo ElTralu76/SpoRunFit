@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform, ActivityIndicator } from 'react-native';
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -89,10 +89,16 @@ export default function ProfileScreen() {
   }
 
   async function handleLogout() {
-    Alert.alert('Déconnexion', 'Tu veux vraiment te déconnecter ?', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Déconnexion', style: 'destructive', onPress: () => supabase.auth.signOut() },
-    ]);
+    if (Platform.OS === 'web') {
+      if (window.confirm('Te déconnecter de SpoRunFit ?')) {
+        await supabase.auth.signOut();
+      }
+    } else {
+      Alert.alert('Déconnexion', 'Tu veux vraiment te déconnecter ?', [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Déconnexion', style: 'destructive', onPress: () => supabase.auth.signOut() },
+      ]);
+    }
   }
 
   return (
