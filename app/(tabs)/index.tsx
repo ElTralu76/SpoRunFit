@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'flex-end', marginBottom: 14,
   },
-  dateLabel:  { color: '#444', fontSize: 12, fontWeight: '600', marginBottom: 2 },
+  dateLabel:  { color: '#666', fontSize: 12, fontWeight: '600', marginBottom: 2 },
   header:     { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
   importCsvBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   },
   statChip: { flex: 1, alignItems: 'center', gap: 2 },
   statValue: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  statLabel: { color: '#444', fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+  statLabel: { color: '#777', fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
   statDivider: { width: 1, height: 28, backgroundColor: '#1e1e1e' },
 
   // Filtres
@@ -403,12 +403,12 @@ const styles = StyleSheet.create({
   },
   filterChipAll: { backgroundColor: '#1a0e00', borderColor: '#e85d04' },
   filterChipIcon: { fontSize: 12 },
-  filterChipText: { color: '#444', fontSize: 12, fontWeight: '700' },
+  filterChipText: { color: '#777', fontSize: 12, fontWeight: '700' },
   filterChipTextAll: { color: '#e85d04' },
 
   // Empty
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  emptyText: { color: '#555', fontSize: 15 },
+  emptyText: { color: '#888', fontSize: 15 },
   emptyHint: { color: '#e85d04', fontSize: 13, fontWeight: '600' },
 
   // Carte
@@ -441,10 +441,10 @@ const styles = StyleSheet.create({
   statusLabel: { fontSize: 11, fontWeight: '700' },
 
   cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  cardDate:    { color: '#555', fontSize: 13 },
-  cardMetaDot: { color: '#333', fontSize: 12 },
-  cardMeta:    { color: '#888', fontSize: 13, fontWeight: '600' },
-  cardNotes:   { color: '#444', fontSize: 12, marginTop: 5, fontStyle: 'italic' },
+  cardDate:    { color: '#888', fontSize: 13 },
+  cardMetaDot: { color: '#666', fontSize: 12 },
+  cardMeta:    { color: '#bbb', fontSize: 13, fontWeight: '600' },
+  cardNotes:   { color: '#777', fontSize: 12, marginTop: 5, fontStyle: 'italic' },
 
   // Barre d'actions
   actionsBar: {

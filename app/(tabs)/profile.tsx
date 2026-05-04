@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   avatarInitials: { color: '#e85d04', fontSize: 22, fontWeight: '800' },
   identityInfo: { flex: 1, gap: 4 },
   displayName: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  emailText: { color: '#555', fontSize: 13 },
+  emailText: { color: '#888', fontSize: 13 },
 
   // Stats
   statsLoading: { height: 90, justifyContent: 'center', alignItems: 'center' },
@@ -243,12 +243,12 @@ const styles = StyleSheet.create({
     padding: 14, alignItems: 'center',
   },
   statValue: { fontSize: 24, fontWeight: '800', lineHeight: 28 },
-  statLabel: { color: '#444', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginTop: 2, textAlign: 'center' },
+  statLabel: { color: '#777', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginTop: 2, textAlign: 'center' },
 
   // Settings
   settingsSection: { marginBottom: 24 },
   sectionLabel: {
-    color: '#333', fontSize: 10, fontWeight: '700',
+    color: '#666', fontSize: 10, fontWeight: '700',
     textTransform: 'uppercase', letterSpacing: 1,
     marginBottom: 8,
   },
@@ -262,8 +262,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14,
   },
   settingDivider: { height: 1, backgroundColor: '#161616', marginHorizontal: 16 },
-  settingLabel: { color: '#444', fontSize: 11, fontWeight: '600', marginBottom: 2 },
-  settingValue: { color: '#aaa', fontSize: 14 },
+  settingLabel: { color: '#777', fontSize: 11, fontWeight: '600', marginBottom: 2 },
+  settingValue: { color: '#ccc', fontSize: 14 },
 
   // Logout
   logoutButton: {
@@ -274,5 +274,5 @@ const styles = StyleSheet.create({
   },
   logoutText: { color: '#f87171', fontWeight: '600', fontSize: 15 },
 
-  version: { color: '#2a2a2a', fontSize: 11, textAlign: 'center' },
+  version: { color: '#444', fontSize: 11, textAlign: 'center' },
 });

@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   sectionLabel: {
-    color: '#333', fontSize: 10, fontWeight: '700',
+    color: '#666', fontSize: 10, fontWeight: '700',
     textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, marginTop: 4,
   },
 
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   },
   activeEmoji: { fontSize: 24 },
   activeName: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  activeMeta: { color: '#666', fontSize: 12, marginTop: 1 },
+  activeMeta: { color: '#999', fontSize: 12, marginTop: 1 },
   pctBadge: {
     backgroundColor: '#1a0e00', borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 4,
@@ -362,10 +362,10 @@ const styles = StyleSheet.create({
   },
   nextSessionFinished: { borderColor: '#4ade8030' },
   nextSessionLabel: {
-    color: '#333', fontSize: 9, fontWeight: '800',
+    color: '#666', fontSize: 9, fontWeight: '800',
     textTransform: 'uppercase', letterSpacing: 0.5,
   },
-  nextSessionTitle: { color: '#ccc', fontSize: 13, fontWeight: '600', flex: 1 },
+  nextSessionTitle: { color: '#ddd', fontSize: 13, fontWeight: '600', flex: 1 },
   finishedText: { color: '#4ade80', fontSize: 13, fontWeight: '700' },
 
   // ── Catalogue ──
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: 10, marginTop: 4,
   },
-  catalogCount: { color: '#333', fontSize: 11 },
+  catalogCount: { color: '#666', fontSize: 11 },
 
   catalogCard: {
     backgroundColor: '#111', borderRadius: 16,
@@ -389,8 +389,8 @@ const styles = StyleSheet.create({
   },
   catalogEmoji: { fontSize: 24 },
   catalogName:   { color: '#fff', fontSize: 15, fontWeight: '700' },
-  catalogAuthor: { color: '#444', fontSize: 12 },
-  catalogDesc:   { color: '#555', fontSize: 13, lineHeight: 19 },
+  catalogAuthor: { color: '#777', fontSize: 12 },
+  catalogDesc:   { color: '#888', fontSize: 13, lineHeight: 19 },
 
   activeBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7, paddingVertical: 2,
     borderWidth: 1, borderColor: '#1e1e1e',
   },
-  metaChipText: { color: '#444', fontSize: 11 },
+  metaChipText: { color: '#777', fontSize: 11 },
 
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   createBtn: {

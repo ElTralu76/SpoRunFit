@@ -346,12 +346,12 @@ const styles = StyleSheet.create({
   // Tabs
   tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#1c1c1c', marginBottom: 16 },
   tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomColor: 'transparent', borderBottomWidth: 2 },
-  tabText: { color: '#555', fontWeight: '700', fontSize: 12 },
+  tabText: { color: '#888', fontWeight: '700', fontSize: 12 },
 
   // Empty
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8 },
-  emptyText: { color: '#aaa', fontSize: 16 },
-  emptyHint: { color: '#555', fontSize: 13 },
+  emptyText: { color: '#ccc', fontSize: 16 },
+  emptyHint: { color: '#888', fontSize: 13 },
 
   // PR card
   prCard: {
@@ -359,19 +359,19 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   prCardTop: { flexDirection: 'row', alignItems: 'flex-start' },
-  prMovement: { color: '#ddd', fontSize: 15, fontWeight: '700', marginBottom: 2 },
+  prMovement: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 2 },
   prValue: { fontSize: 22, fontWeight: '800' },
   prMeta: { alignItems: 'flex-end', gap: 2 },
-  prDate: { color: '#666', fontSize: 11 },
-  prCount: { color: '#444', fontSize: 11 },
-  prArrow: { color: '#444', fontSize: 12, marginTop: 4 },
+  prDate: { color: '#888', fontSize: 11 },
+  prCount: { color: '#777', fontSize: 11 },
+  prArrow: { color: '#666', fontSize: 12, marginTop: 4 },
 
   // History
   history: { marginTop: 12, borderTopWidth: 1, borderTopColor: '#ffffff15', paddingTop: 10, gap: 6 },
   historyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   historyBest: {},
-  historyValue: { color: '#aaa', fontWeight: '700', fontSize: 14, width: 90 },
-  historyDate: { color: '#555', fontSize: 12, flex: 1 },
+  historyValue: { color: '#ccc', fontWeight: '700', fontSize: 14, width: 90 },
+  historyDate: { color: '#888', fontSize: 12, flex: 1 },
   prBadge: {
     fontSize: 10, fontWeight: '800',
     borderWidth: 1, borderRadius: 4,
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   modalTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
   modalClose: { color: '#666', fontSize: 20 },
-  modalLabel: { color: '#666', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginTop: 12, marginBottom: 6 },
+  modalLabel: { color: '#999', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginTop: 12, marginBottom: 6 },
   modalRow: { flexDirection: 'row', gap: 10 },
   modalInput: {
     backgroundColor: '#1c1c1c', borderRadius: 10,
