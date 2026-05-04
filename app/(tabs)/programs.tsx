@@ -15,7 +15,6 @@ type UserProgram = {
   start_date: string;
   sessions_done: number;
   active: boolean;
-  program_type?: 'catalog' | 'custom';
 };
 
 type MyCustomProgram = {
@@ -59,23 +58,55 @@ export default function ProgramsScreen() {
     setLoading(true);
     const [upRes, cpRes] = await Promise.all([
       supabase.from('user_programs')
-        .select('id, program_id, start_date, sessions_done, active, program_type')
+        .select('id, program_id, start_date, sessions_done, active')
         .eq('user_id', session.user.id).eq('active', true),
       supabase.from('custom_programs')
         .select('id, name, emoji, level, duration_weeks, sessions_per_week, sessions, share_token')
         .eq('author_id', session.user.id)
         .order('created_at', { ascending: false }),
     ]);
-    setUserPrograms(upRes.data ?? []);
-    setMyCustomPrograms(cpRes.data ?? []);
+    const ups = upRes.data ?? [];
+    setUserPrograms(ups);
+
+    // Récupère aussi les programmes custom dans lesquels l'user est inscrit
+    const customIds = ups
+      .map(u => u.program_id)
+      .filter(id => !PROGRAMS.find(p => p.id === id)); // IDs non trouvés dans le catalogue = custom
+
+    let allCustom = cpRes.data ?? [];
+    if (customIds.length > 0) {
+      const { data: enrolled } = await supabase
+        .from('custom_programs')
+        .select('id, name, emoji, level, duration_weeks, sessions_per_week, sessions, share_token')
+        .in('id', customIds);
+      // Fusionne sans doublons
+      const merged = [...allCustom];
+      for (const p of enrolled ?? []) {
+        if (!merged.find(m => m.id === p.id)) merged.push(p);
+      }
+      allCustom = merged;
+    }
+    setMyCustomPrograms(allCustom);
     setLoading(false);
   }
 
   function getProgress(up: UserProgram) {
+    // Catalogue
     const tpl = PROGRAMS.find(p => p.id === up.program_id);
-    if (!tpl) return { done: up.sessions_done, total: 0, pct: 0 };
-    const pct = Math.min(100, Math.round((up.sessions_done / tpl.sessions_total) * 100));
-    return { done: up.sessions_done, total: tpl.sessions_total, pct };
+    if (tpl) {
+      const pct = Math.min(100, Math.round((up.sessions_done / tpl.sessions_total) * 100));
+      return { done: up.sessions_done, total: tpl.sessions_total, pct,
+        name: tpl.name, emoji: tpl.emoji, nextTitle: tpl.sessions[up.sessions_done]?.title ?? null };
+    }
+    // Custom
+    const cp = myCustomPrograms.find(p => p.id === up.program_id);
+    if (cp) {
+      const total = cp.sessions.length;
+      const pct = Math.min(100, Math.round((up.sessions_done / total) * 100));
+      return { done: up.sessions_done, total, pct,
+        name: cp.name, emoji: cp.emoji, nextTitle: cp.sessions[up.sessions_done]?.title ?? null };
+    }
+    return { done: up.sessions_done, total: 0, pct: 0, name: '—', emoji: '💪', nextTitle: null };
   }
 
   const activeIds = new Set(userPrograms.map(u => u.program_id));
@@ -140,31 +171,35 @@ export default function ProgramsScreen() {
         </>
       )}
 
-      {/* ── Programmes actifs ── */}
+      {/* ── Programmes en cours ── */}
       {userPrograms.length > 0 && (
         <>
           <Text style={styles.sectionLabel}>En cours</Text>
           {userPrograms.map(up => {
-            const tpl = PROGRAMS.find(p => p.id === up.program_id);
-            if (!tpl) return null;
-            const { done, total, pct } = getProgress(up);
-            const nextSession = tpl.sessions[done];
+            const { done, total, pct, name, emoji, nextTitle } = getProgress(up);
+            if (!total) return null;
             const finished = done >= total;
+
+            // Navigation : catalogue vs custom
+            const isCatalog = !!PROGRAMS.find(p => p.id === up.program_id);
+            const cp = myCustomPrograms.find(p => p.id === up.program_id);
+            const destination = isCatalog
+              ? `/program/${up.program_id}`
+              : cp ? `/program/share/${cp.share_token}` : null;
 
             return (
               <TouchableOpacity
                 key={up.id}
                 style={styles.activeCard}
-                onPress={() => router.push(`/program/${tpl.id}`)}
+                onPress={() => destination && router.push(destination as any)}
                 activeOpacity={0.85}
               >
-                {/* En-tête */}
                 <View style={styles.activeCardTop}>
                   <View style={styles.activeEmojiWrap}>
-                    <Text style={styles.activeEmoji}>{tpl.emoji}</Text>
+                    <Text style={styles.activeEmoji}>{emoji}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.activeName}>{tpl.name}</Text>
+                    <Text style={styles.activeName}>{name}</Text>
                     <Text style={styles.activeMeta}>
                       Séance {Math.min(done + 1, total)}/{total}
                     </Text>
@@ -174,16 +209,14 @@ export default function ProgramsScreen() {
                   </View>
                 </View>
 
-                {/* Barre de progression */}
                 <View style={styles.progressTrack}>
                   <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
                 </View>
 
-                {/* Prochaine séance */}
-                {!finished && nextSession && (
+                {!finished && nextTitle && (
                   <View style={styles.nextSessionBox}>
                     <Text style={styles.nextSessionLabel}>PROCHAINE</Text>
-                    <Text style={styles.nextSessionTitle}>{nextSession.title}</Text>
+                    <Text style={styles.nextSessionTitle}>{nextTitle}</Text>
                   </View>
                 )}
                 {finished && (
