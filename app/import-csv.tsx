@@ -32,6 +32,7 @@ export default function ImportCSVScreen() {
   const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
   const [visibility, setVisibility] = useState<'private' | 'friends' | 'public'>('friends');
   const [error, setError] = useState('');
+  const [prCount, setPrCount] = useState(0);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -92,8 +93,8 @@ export default function ImportCSVScreen() {
         .eq('user_id', session.user.id);
       dbError = error;
     } else {
-      // Mode création classique
-      const { error } = await supabase.from('sessions').insert({
+      // Mode création classique — on récupère l'ID directement
+      const { data: inserted, error } = await supabase.from('sessions').insert({
         user_id: session.user.id,
         date: sessionDate,
         type: 'run',
@@ -102,8 +103,11 @@ export default function ImportCSVScreen() {
         visibility,
         notes: fileName.replace('.csv', ''),
         data,
-      });
+      }).select('id').maybeSingle();
       dbError = error;
+      if (!dbError && inserted?.id) {
+        (data as any).__insertedId = inserted.id;
+      }
     }
 
     if (dbError) {
@@ -113,21 +117,10 @@ export default function ImportCSVScreen() {
     } else {
       // ── Détection automatique des PRs run ──────────────────
       try {
-        // Récupère l'ID de la séance (update ou insert)
-        let finalSessionId = sessionId ?? null;
-        if (!isUpdateMode) {
-          const { data: inserted } = await supabase
-            .from('sessions')
-            .select('id')
-            .eq('user_id', session.user.id)
-            .eq('date', sessionDate)
-            .eq('type', 'run')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          finalSessionId = inserted?.id ?? null;
-        }
-        if (finalSessionId) {
+        const finalSessionId: string | null =
+          isUpdateMode ? (sessionId ?? null) : ((data as any).__insertedId ?? null);
+
+        if (finalSessionId && parsed) {
           const durationMin = parsed.total_distance_km && parsed.avg_pace
             ? Math.round(parsePaceToMin(parsed.avg_pace) * parsed.total_distance_km)
             : null;
@@ -136,9 +129,14 @@ export default function ImportCSVScreen() {
             { distance: parsed.total_distance_km, pace: parsed.avg_pace },
             durationMin,
           );
-          await savePRs(session.user.id, prs);
+          if (prs.length > 0) {
+            await savePRs(session.user.id, prs);
+            setPrCount(prs.length);
+          }
         }
-      } catch (_) { /* non bloquant */ }
+      } catch (prErr) {
+        console.warn('PR detection error:', prErr);
+      }
       setStep('done');
     }
   }
@@ -327,6 +325,13 @@ export default function ImportCSVScreen() {
           ? 'La séance planifiée est maintenant marquée comme terminée.'
           : 'Elle apparaît dans ton journal.'}
       </Text>
+      {prCount > 0 && (
+        <View style={styles.prBanner}>
+          <Text style={styles.prBannerText}>
+            🏆 {prCount} nouveau{prCount > 1 ? 'x' : ''} PR détecté{prCount > 1 ? 's' : ''} !
+          </Text>
+        </View>
+      )}
       <TouchableOpacity style={styles.importBtn} onPress={() => router.replace('/(tabs)')}>
         <Text style={styles.importBtnText}>Voir mon journal</Text>
       </TouchableOpacity>
@@ -432,4 +437,9 @@ const styles = StyleSheet.create({
   loadingText: { color: '#aaa', fontSize: 16 },
   doneTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
   doneSub: { color: '#aaa', fontSize: 14 },
+  prBanner: {
+    backgroundColor: '#1a1000', borderRadius: 12, borderWidth: 1,
+    borderColor: '#facc1540', paddingHorizontal: 20, paddingVertical: 12, marginTop: 12,
+  },
+  prBannerText: { color: '#facc15', fontWeight: '700', fontSize: 15 },
 });
