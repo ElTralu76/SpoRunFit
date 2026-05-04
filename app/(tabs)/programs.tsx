@@ -15,6 +15,18 @@ type UserProgram = {
   start_date: string;
   sessions_done: number;
   active: boolean;
+  program_type?: 'catalog' | 'custom';
+};
+
+type MyCustomProgram = {
+  id: string;
+  name: string;
+  emoji: string;
+  level: string;
+  duration_weeks: number;
+  sessions_per_week: number;
+  sessions: any[];
+  share_token: string;
 };
 
 // Couleur d'accentuation par tag de catégorie
@@ -35,21 +47,27 @@ export default function ProgramsScreen() {
   const { session } = useAuth();
   const router = useRouter();
   const [userPrograms, setUserPrograms] = useState<UserProgram[]>([]);
+  const [myCustomPrograms, setMyCustomPrograms] = useState<MyCustomProgram[]>([]);
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(
-    useCallback(() => { fetchUserPrograms(); }, [session])
+    useCallback(() => { fetchAll(); }, [session])
   );
 
-  async function fetchUserPrograms() {
+  async function fetchAll() {
     if (!session?.user) { setLoading(false); return; }
     setLoading(true);
-    const { data } = await supabase
-      .from('user_programs')
-      .select('id, program_id, start_date, sessions_done, active')
-      .eq('user_id', session.user.id)
-      .eq('active', true);
-    setUserPrograms(data ?? []);
+    const [upRes, cpRes] = await Promise.all([
+      supabase.from('user_programs')
+        .select('id, program_id, start_date, sessions_done, active, program_type')
+        .eq('user_id', session.user.id).eq('active', true),
+      supabase.from('custom_programs')
+        .select('id, name, emoji, level, duration_weeks, sessions_per_week, sessions, share_token')
+        .eq('author_id', session.user.id)
+        .order('created_at', { ascending: false }),
+    ]);
+    setUserPrograms(upRes.data ?? []);
+    setMyCustomPrograms(cpRes.data ?? []);
     setLoading(false);
   }
 
@@ -72,7 +90,55 @@ export default function ProgramsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.header}>Programmes</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.header}>Programmes</Text>
+        <TouchableOpacity style={styles.createBtn} onPress={() => router.push('/create-program')}>
+          <Ionicons name="add" size={16} color="#e85d04" />
+          <Text style={styles.createBtnText}>Créer</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Mes programmes perso ── */}
+      {myCustomPrograms.length > 0 && (
+        <>
+          <Text style={styles.sectionLabel}>Mes programmes</Text>
+          {myCustomPrograms.map(cp => {
+            const levelColor = LEVEL_COLOR[cp.level] ?? '#888';
+            const shareUrl = `https://spo-run-fit.vercel.app/program/share/${cp.share_token}`;
+            return (
+              <View key={cp.id} style={styles.customCard}>
+                <TouchableOpacity style={styles.customCardBody}
+                  onPress={() => router.push(`/program/share/${cp.share_token}` as any)}
+                  activeOpacity={0.85}>
+                  <View style={styles.catalogTop}>
+                    <View style={styles.catalogEmojiWrap}>
+                      <Text style={styles.catalogEmoji}>{cp.emoji}</Text>
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={styles.catalogName}>{cp.name}</Text>
+                      <Text style={styles.catalogAuthor}>
+                        {cp.duration_weeks} sem. · {cp.sessions_per_week} séances/sem. · {cp.sessions.length} séances
+                      </Text>
+                    </View>
+                    <View style={[styles.tag, { borderColor: levelColor + '50' }]}>
+                      <Text style={[styles.tagText, { color: levelColor }]}>{cp.level}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+                {/* Bouton partager */}
+                <TouchableOpacity style={styles.shareBtn} onPress={() => {
+                  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                    navigator.clipboard.writeText(shareUrl);
+                  }
+                }}>
+                  <Ionicons name="share-outline" size={14} color="#555" />
+                  <Text style={styles.shareBtnText}>Copier le lien</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </>
+      )}
 
       {/* ── Programmes actifs ── */}
       {userPrograms.length > 0 && (
@@ -208,17 +274,6 @@ export default function ProgramsScreen() {
         );
       })}
 
-      {/* Placeholder programme perso */}
-      <TouchableOpacity style={styles.customProgCard} disabled>
-        <Ionicons name="add-circle-outline" size={24} color="#2a2a2a" />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.customProgTitle}>Créer un programme</Text>
-          <Text style={styles.customProgSub}>Bientôt disponible</Text>
-        </View>
-        <View style={styles.soonBadge}>
-          <Text style={styles.soonText}>Bientôt</Text>
-        </View>
-      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -230,7 +285,7 @@ const styles = StyleSheet.create({
 
   header: {
     fontSize: 28, fontWeight: '800', color: '#fff',
-    letterSpacing: -0.5, marginBottom: 20,
+    letterSpacing: -0.5,
   },
   sectionLabel: {
     color: '#333', fontSize: 10, fontWeight: '700',
@@ -326,19 +381,25 @@ const styles = StyleSheet.create({
   },
   metaChipText: { color: '#444', fontSize: 11 },
 
-  // Placeholder programme perso
-  customProgCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#0d0d0d', borderRadius: 16,
-    borderWidth: 1, borderStyle: 'dashed', borderColor: '#222',
-    padding: 16, marginTop: 4,
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  createBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#1a0e00', borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderWidth: 1, borderColor: '#e85d0440',
   },
-  customProgTitle: { color: '#333', fontSize: 14, fontWeight: '700' },
-  customProgSub:   { color: '#222', fontSize: 12, marginTop: 2 },
-  soonBadge: {
-    backgroundColor: '#161616', borderRadius: 6,
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderWidth: 1, borderColor: '#222',
+  createBtnText: { color: '#e85d04', fontWeight: '700', fontSize: 13 },
+
+  // Programmes perso
+  customCard: {
+    backgroundColor: '#111', borderRadius: 16, borderWidth: 1, borderColor: '#1e1e1e',
+    marginBottom: 12, overflow: 'hidden',
   },
-  soonText: { color: '#333', fontSize: 10, fontWeight: '700' },
+  customCardBody: { padding: 16 },
+  shareBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderTopWidth: 1, borderTopColor: '#161616',
+    paddingHorizontal: 16, paddingVertical: 10,
+  },
+  shareBtnText: { color: '#444', fontSize: 12 },
 });
