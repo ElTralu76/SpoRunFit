@@ -703,6 +703,107 @@ export function generateWendlerSessions(config?: WendlerConfig): ProgramSession[
   });
 }
 
+// ─── Générateur Force Stricte (calisthenics) ─────────────
+
+export type ForceStricteConfig = {
+  pullup:  number;   // max reps Pull-Ups  (0 = exclu)
+  hspu:    number;   // max reps HSPU      (0 = exclu)
+  pushup:  number;   // max reps Push-Ups  (0 = exclu)
+  dips:    number;   // max reps Dips      (0 = exclu)
+};
+
+export const FORCE_STRICTE_MOVEMENTS = [
+  { key: 'pullup' as const,  label: '🔝 Pull-Ups',              session: 'A' as const },
+  { key: 'pushup' as const,  label: '💪 Push-Ups',              session: 'A' as const },
+  { key: 'hspu'   as const,  label: '🙃 HandStand Push-Ups',    session: 'B' as const },
+  { key: 'dips'   as const,  label: '⬇️ Dips',                  session: 'B' as const },
+] as const;
+
+// Progression sur 8 semaines : [sets, % du max]
+const FS_PROGRESSION: [number, number][] = [
+  [3, 0.50],  // Sem 1 — Foundation
+  [4, 0.50],  // Sem 2 — Volume
+  [4, 0.55],  // Sem 3 — Progression
+  [4, 0.60],  // Sem 4 — Progression
+  [5, 0.65],  // Sem 5 — Intensité
+  [5, 0.70],  // Sem 6 — Pic de volume
+  [4, 0.75],  // Sem 7 — Pic de force
+  [3, 0.55],  // Sem 8 — Décharge
+];
+
+const FS_WEEK_NOTES: (string | undefined)[] = [
+  'Première semaine — prends tes marques, arrête toi toujours 1-2 reps avant l\'échec.',
+  undefined,
+  undefined,
+  undefined,
+  'Semaine 5 — la charge monte, concentre-toi sur la technique.',
+  undefined,
+  'Semaine 7 — pic d\'intensité, récupère bien entre les séances.',
+  '🧘 Semaine de décharge — allège le volume, prépare ton corps pour les tests.',
+];
+
+export function generateForceStricteSessions(config: ForceStricteConfig): ProgramSession[] {
+  const sessions: ProgramSession[] = [];
+  let num = 1;
+
+  for (let w = 0; w < 8; w++) {
+    const [sets, pct] = FS_PROGRESSION[w];
+    const weekNote = FS_WEEK_NOTES[w];
+
+    // Session A : Pull-Ups + Push-Ups
+    const movA: ProgramMovement[] = [];
+    if (config.pullup > 0) {
+      const reps = Math.max(1, Math.round(config.pullup * pct));
+      movA.push({ name: 'Pull-Ups', sets, reps: String(reps),
+        notes: `${reps} reps strictes · ton max = ${config.pullup} · repos 2-3 min entre séries` });
+    }
+    if (config.pushup > 0) {
+      const reps = Math.max(1, Math.round(config.pushup * pct));
+      movA.push({ name: 'Push-Ups', sets, reps: String(reps),
+        notes: `${reps} reps strictes · ton max = ${config.pushup} · repos 90 sec entre séries` });
+    }
+    if (movA.length > 0) {
+      sessions.push({ number: num++, title: `Sem ${w + 1} — Séance A`, notes: weekNote, movements: movA });
+    }
+
+    // Session B : HSPU + Dips
+    const movB: ProgramMovement[] = [];
+    if (config.hspu > 0) {
+      const reps = Math.max(1, Math.round(config.hspu * pct));
+      movB.push({ name: 'HandStand Push-Ups', sets, reps: String(reps),
+        notes: `${reps} reps strictes · ton max = ${config.hspu} · repos 2-3 min entre séries` });
+    }
+    if (config.dips > 0) {
+      const reps = Math.max(1, Math.round(config.dips * pct));
+      movB.push({ name: 'Dips', sets, reps: String(reps),
+        notes: `${reps} reps strictes · ton max = ${config.dips} · repos 90 sec entre séries` });
+    }
+    if (movB.length > 0) {
+      sessions.push({ number: num++, title: `Sem ${w + 1} — Séance B`, notes: weekNote, movements: movB });
+    }
+  }
+
+  // Séance finale : Test Semaine 9
+  const testMov: ProgramMovement[] = [];
+  if (config.pullup > 0) testMov.push({ name: 'Pull-Ups',           sets: 1, reps: 'MAX',
+    notes: `🎯 Objectif : dépasser ${config.pullup} · repos 5 min avant le test` });
+  if (config.pushup > 0) testMov.push({ name: 'Push-Ups',           sets: 1, reps: 'MAX',
+    notes: `🎯 Objectif : dépasser ${config.pushup} · repos 5 min avant le test` });
+  if (config.hspu > 0)   testMov.push({ name: 'HandStand Push-Ups', sets: 1, reps: 'MAX',
+    notes: `🎯 Objectif : dépasser ${config.hspu} · repos 5 min avant le test` });
+  if (config.dips > 0)   testMov.push({ name: 'Dips',               sets: 1, reps: 'MAX',
+    notes: `🎯 Objectif : dépasser ${config.dips} · repos 5 min avant le test` });
+
+  sessions.push({
+    number: num,
+    title: '🏆 Sem 9 — Test Final',
+    notes: 'Repose-toi 2-3 jours avant cette séance. Teste chaque mouvement à fond reposé, dans l\'ordre indiqué. Compare avec tes valeurs de départ !',
+    movements: testMov,
+  });
+
+  return sessions;
+}
+
 // ─── Catalogue ────────────────────────────────────────────
 
 export const PROGRAMS: ProgramTemplate[] = [
@@ -797,6 +898,25 @@ export const PROGRAMS: ProgramTemplate[] = [
     goal: 'Progresser régulièrement sur Squat, Développé couché, Soulevé de terre et Développé militaire',
     equipment: 'Barre, disques, rack squat, banc de développé',
     sessions: wendler531Sessions,
+  },
+  {
+    id: 'force-stricte',
+    name: 'Force Stricte — Sans Matériel',
+    emoji: '🤸',
+    description:
+      'Programme 8 semaines pour exploser tes maxes au poids de corps. ' +
+      'Tu renseignes ton max actuel sur Pull-Ups, HandStand Push-Ups, Push-Ups et Dips — ' +
+      'le programme calcule toutes les charges et progressions automatiquement. ' +
+      '2 séances/semaine. Semaine 9 : test final pour mesurer ta progression.',
+    author: 'SpoRunFit',
+    level: 'Intermédiaire',
+    category: 'Force',
+    duration_weeks: 9,
+    sessions_total: 17,
+    frequency: '2x / semaine',
+    goal: 'Maximiser ses reps au poids de corps sur 4 mouvements fondamentaux',
+    equipment: 'Barre de traction · Sol · Parallettes ou chaise (Dips)',
+    sessions: [],  // généré dynamiquement via generateForceStricteSessions
   },
 ];
 

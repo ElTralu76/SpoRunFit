@@ -10,6 +10,8 @@ import {
   getProgramById, ProgramSession,
   generatePavelSessions, generateWendlerSessions, WendlerConfig,
   WENDLER_LIFTS,
+  generateForceStricteSessions, ForceStricteConfig,
+  FORCE_STRICTE_MOVEMENTS,
 } from '../../lib/programs';
 
 // ─── Types ────────────────────────────────────────────────
@@ -24,9 +26,10 @@ type UserProgram = {
 };
 
 // Programmes qui demandent une config avant le démarrage
-const CONFIG_TYPE: Record<string, 'pavel' | 'wendler'> = {
+const CONFIG_TYPE: Record<string, 'pavel' | 'wendler' | 'force-stricte'> = {
   'tractions-pavel': 'pavel',
   'wendler-531':     'wendler',
+  'force-stricte':   'force-stricte',
 };
 
 const LEVEL_COLOR: Record<string, string> = {
@@ -48,6 +51,8 @@ function computeSessions(
     return generatePavelSessions(config.pullup_max);
   if (tpl.id === 'wendler-531' && config.squat)
     return generateWendlerSessions(config as WendlerConfig);
+  if (tpl.id === 'force-stricte')
+    return generateForceStricteSessions(config as ForceStricteConfig);
   return tpl.sessions;
 }
 
@@ -139,8 +144,10 @@ export default function ProgramDetailScreen() {
     setConfigDraft(
       cfgType === 'pavel'
         ? { pullup_max: '5' }
-        : { squat: '100', bench: '80', deadlift: '120', ohp: '60',
-            squat_on: 'on', bench_on: 'on', deadlift_on: 'on', ohp_on: 'on' },
+        : cfgType === 'force-stricte'
+          ? { pullup: '', hspu: '', pushup: '', dips: '' }
+          : { squat: '100', bench: '80', deadlift: '120', ohp: '60',
+              squat_on: 'on', bench_on: 'on', deadlift_on: 'on', ohp_on: 'on' },
     );
     setShowConfig(true);
   }
@@ -176,6 +183,23 @@ export default function ProgramDetailScreen() {
         return;
       }
       handleStart(config);
+    } else if (cfgType === 'force-stricte') {
+      const fsConfig: Record<string, number> = {};
+      for (const mov of FORCE_STRICTE_MOVEMENTS) {
+        const raw = configDraft[mov.key] ?? '';
+        const val = raw === '' ? 0 : parseInt(raw, 10);
+        if (isNaN(val) || val < 0) {
+          showMsg(`⚠️ Valeur invalide pour ${mov.label}`, false, 3000);
+          return;
+        }
+        fsConfig[mov.key] = val;
+      }
+      const anyActive = FORCE_STRICTE_MOVEMENTS.some(m => fsConfig[m.key] > 0);
+      if (!anyActive) {
+        showMsg('⚠️ Entre ton max sur au moins un mouvement', false, 3000);
+        return;
+      }
+      handleStart(fsConfig);
     }
   }
 
@@ -457,6 +481,39 @@ export default function ProgramDetailScreen() {
                 </>
               )}
 
+              {cfgType === 'force-stricte' && (
+                <>
+                  <Text style={styles.configTitle}>🤸 Tes maxes actuels</Text>
+                  <Text style={styles.configSub}>
+                    Entre ton max de reps sur chaque mouvement. Laisse vide ou mets 0 pour exclure un mouvement du programme.
+                  </Text>
+                  {FORCE_STRICTE_MOVEMENTS.map(({ key, label }) => {
+                    const val = parseInt(configDraft[key] ?? '', 10);
+                    const excluded = configDraft[key] === '' || configDraft[key] === '0' || val === 0;
+                    return (
+                      <View key={key} style={styles.configRow}>
+                        <Text style={[styles.configLabel, excluded && { color: '#444' }]}>
+                          {label}{excluded ? '  — exclu' : ''}
+                        </Text>
+                        <TextInput
+                          style={[styles.configInput, excluded && { opacity: 0.4 }]}
+                          value={configDraft[key]}
+                          onChangeText={v => setConfigDraft(p => ({ ...p, [key]: v }))}
+                          keyboardType="number-pad"
+                          placeholder="0 = exclu du programme"
+                          placeholderTextColor="#444"
+                        />
+                        {!excluded && !isNaN(val) && val > 0 && (
+                          <Text style={styles.configHint}>
+                            Sem 1 : {Math.max(1, Math.round(val * 0.5))} reps × 3 séries · Sem 7 : {Math.max(1, Math.round(val * 0.75))} reps × 4 séries
+                          </Text>
+                        )}
+                      </View>
+                    );
+                  })}
+                </>
+              )}
+
               {/* Feedback inline */}
               {feedback ? (
                 <View style={[styles.feedbackBox, feedbackOk ? styles.feedbackGreen : styles.feedbackRed]}>
@@ -510,6 +567,16 @@ export default function ProgramDetailScreen() {
         <View style={styles.cfgBadge}>
           <Text style={styles.cfgBadgeText}>
             🏋️ Squat {userCfg.squat} · DC {userCfg.bench} · SDT {userCfg.deadlift} · DM {userCfg.ohp} kg
+          </Text>
+        </View>
+      )}
+      {isEnrolled && userCfg && cfgType === 'force-stricte' && (
+        <View style={styles.cfgBadge}>
+          <Text style={styles.cfgBadgeText}>
+            🤸{' '}
+            {FORCE_STRICTE_MOVEMENTS.filter(m => (userCfg[m.key] ?? 0) > 0)
+              .map(m => `${m.label.split(' ').slice(1).join(' ')} ×${userCfg[m.key]}`)
+              .join(' · ')}
           </Text>
         </View>
       )}
