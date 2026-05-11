@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { ActivityIndicator, View, Platform } from 'react-native';
 import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { useAuth } from '../hooks/useAuth';
+import { ThemeProvider } from '../lib/ThemeContext';
 
 export default function RootLayout() {
   const { session, loading } = useAuth();
@@ -39,11 +40,13 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="import-csv" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="+html" options={{ headerShown: false }} />
-    </Stack>
+    <ThemeProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="import-csv" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="+html" options={{ headerShown: false }} />
+      </Stack>
+    </ThemeProvider>
   );
 }

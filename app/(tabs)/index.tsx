@@ -2,11 +2,12 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, ScrollView,
 } from 'react-native';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme, ThemeColors } from '../../lib/ThemeContext';
 import WelcomeScreen from '../../components/WelcomeScreen';
 
 // ─── Types ────────────────────────────────────────────────
@@ -89,6 +90,7 @@ function todayLabel(): string {
 
 export default function JournalScreen() {
   const { session } = useAuth();
+  const { theme } = useTheme();
   const router = useRouter();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +99,7 @@ export default function JournalScreen() {
   const [activeFilters, setActiveFilters] = useState<Set<DisplayStatus>>(
     new Set(ALL_FILTERS)
   );
+  const styles = useMemo(() => makeStyles(theme), [theme]);
 
   useFocusEffect(
     useCallback(() => { fetchSessions(); }, [session])
@@ -367,131 +370,119 @@ export default function JournalScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────
+// ─── Styles dynamiques ────────────────────────────────────
 
-const styles = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: '#07070e', paddingTop: 56, paddingHorizontal: 16 },
-  centered:   { justifyContent: 'center', alignItems: 'center' },
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container:  { flex: 1, backgroundColor: c.bg, paddingTop: 56, paddingHorizontal: 16 },
+    centered:   { justifyContent: 'center', alignItems: 'center' },
 
-  // ── Header ──────────────────────────────────────────────
-  headerSection: { marginBottom: 16 },
-  headerTop: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'flex-end', marginBottom: 16,
-  },
-  dateLabel: {
-    color: '#f26318', fontSize: 10, fontWeight: '700',
-    textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4,
-  },
-  header: { fontSize: 32, fontWeight: '900', color: '#eaeaf6', letterSpacing: -1 },
-  importCsvBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#f2631810', borderRadius: 12,
-    paddingHorizontal: 13, paddingVertical: 9,
-    borderWidth: 1, borderColor: '#f2631828',
-  },
-  importCsvText: { color: '#f26318', fontWeight: '700', fontSize: 12, letterSpacing: 0.3 },
+    headerSection: { marginBottom: 16 },
+    headerTop: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'flex-end', marginBottom: 16,
+    },
+    dateLabel: {
+      color: c.orange, fontSize: 10, fontWeight: '700',
+      textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4,
+    },
+    header: { fontSize: 32, fontWeight: '900', color: c.t1, letterSpacing: -1 },
+    importCsvBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      backgroundColor: c.orange + '12', borderRadius: 12,
+      paddingHorizontal: 13, paddingVertical: 9,
+      borderWidth: 1, borderColor: c.orange + '28',
+    },
+    importCsvText: { color: c.orange, fontWeight: '700', fontSize: 12, letterSpacing: 0.3 },
 
-  // ── Stats ────────────────────────────────────────────────
-  statsRow: {
-    flexDirection: 'row',
-    backgroundColor: '#0e0e1d',
-    borderRadius: 14, borderWidth: 1, borderColor: '#1e1e36',
-    paddingVertical: 14, paddingHorizontal: 20, alignItems: 'center',
-  },
-  statChip: { flex: 1, alignItems: 'center', gap: 3 },
-  statValue: { color: '#eaeaf6', fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
-  statLabel: { color: '#505070', fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
-  statDivider: { width: 1, height: 32, backgroundColor: '#1e1e36' },
+    statsRow: {
+      flexDirection: 'row', backgroundColor: c.surf,
+      borderRadius: 14, borderWidth: 1, borderColor: c.border,
+      paddingVertical: 14, paddingHorizontal: 20, alignItems: 'center',
+    },
+    statChip: { flex: 1, alignItems: 'center', gap: 3 },
+    statValue: { color: c.t1, fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
+    statLabel: { color: c.t3, fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
+    statDivider: { width: 1, height: 32, backgroundColor: c.border },
 
-  // ── Filtres ──────────────────────────────────────────────
-  filtersScroll: { flexGrow: 0, marginBottom: 14 },
-  filtersRow: { flexDirection: 'row', gap: 7, paddingBottom: 4 },
-  filterChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 12, paddingVertical: 7,
-    borderRadius: 100, borderWidth: 1,
-    backgroundColor: '#0e0e1d', borderColor: '#1e1e36',
-  },
-  filterChipAll: { backgroundColor: '#f2631814', borderColor: '#f2631840' },
-  filterChipIcon: { fontSize: 11 },
-  filterChipText: { color: '#505070', fontSize: 11, fontWeight: '700' },
-  filterChipTextAll: { color: '#f26318' },
+    // ── Filtres — hauteur fixe pour éviter l'écrasement ──
+    filtersScroll: { height: 46, marginBottom: 12, flexShrink: 0 },
+    filtersRow: { flexDirection: 'row', gap: 7, alignItems: 'center', paddingRight: 4 },
+    filterChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      paddingHorizontal: 12, paddingVertical: 7,
+      borderRadius: 100, borderWidth: 1,
+      backgroundColor: c.surf, borderColor: c.border,
+    },
+    filterChipAll: { backgroundColor: c.orange + '14', borderColor: c.orange + '40' },
+    filterChipIcon: { fontSize: 11 },
+    filterChipText: { color: c.t3, fontSize: 11, fontWeight: '700' },
+    filterChipTextAll: { color: c.orange },
 
-  // ── Empty ─────────────────────────────────────────────────
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14 },
-  emptyText: { color: '#7272a0', fontSize: 15, fontWeight: '600' },
-  emptyHint: { color: '#f26318', fontSize: 13, fontWeight: '600' },
+    empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14 },
+    emptyText: { color: c.t2, fontSize: 15, fontWeight: '600' },
+    emptyHint: { color: c.orange, fontSize: 13, fontWeight: '600' },
 
-  // ── Carte ─────────────────────────────────────────────────
-  card: {
-    flexDirection: 'row',
-    borderRadius: 16, marginBottom: 10,
-    borderWidth: 1, borderColor: '#1e1e36',
-    backgroundColor: '#0e0e1d',
-    overflow: 'hidden',
-  },
-  cardConfirming: { borderColor: '#f8717138' },
+    card: {
+      flexDirection: 'row',
+      borderRadius: 16, marginBottom: 10,
+      borderWidth: 1, borderColor: c.border,
+      backgroundColor: c.surf,
+      overflow: 'hidden',
+    },
+    cardConfirming: { borderColor: '#f8717138' },
+    cardStripe: { width: 4 },
+    cardInner: { flex: 1 },
+    cardBody: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10 },
 
-  // Barre colorée verticale gauche
-  cardStripe: { width: 4 },
+    cardTop: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 8,
+    },
+    cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    typeIconWrap: {
+      width: 36, height: 36, borderRadius: 10,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    cardTypeIcon: { fontSize: 17 },
+    cardType: { fontSize: 14, fontWeight: '700', letterSpacing: 0.1 },
 
-  // Contenu à droite de la barre
-  cardInner: { flex: 1 },
-  cardBody: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10 },
+    statusBadge: {
+      paddingHorizontal: 9, paddingVertical: 4,
+      borderRadius: 100, borderWidth: 1,
+    },
+    statusLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
 
-  cardTop: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 8,
-  },
-  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  typeIconWrap: {
-    width: 36, height: 36, borderRadius: 10,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  cardTypeIcon: { fontSize: 17 },
-  cardType: { fontSize: 14, fontWeight: '700', letterSpacing: 0.1 },
+    cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1 },
+    cardDate:    { color: c.t2, fontSize: 12 },
+    cardMetaDot: { color: c.t3, fontSize: 11 },
+    cardMeta:    { color: c.t2, fontSize: 12, fontWeight: '600' },
+    cardNotes:   { color: c.t3, fontSize: 12, marginTop: 6, fontStyle: 'italic', lineHeight: 17 },
 
-  statusBadge: {
-    paddingHorizontal: 9, paddingVertical: 4,
-    borderRadius: 100, borderWidth: 1,
-  },
-  statusLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+    actionsBar: {
+      flexDirection: 'row', justifyContent: 'flex-end',
+      borderTopWidth: 1, borderTopColor: c.border,
+      paddingHorizontal: 10, paddingVertical: 7, gap: 4,
+    },
+    actionBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
 
-  cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1 },
-  cardDate:    { color: '#7272a0', fontSize: 12 },
-  cardMetaDot: { color: '#3d3d5e', fontSize: 11 },
-  cardMeta:    { color: '#9090b8', fontSize: 12, fontWeight: '600' },
-  cardNotes:   { color: '#505070', fontSize: 12, marginTop: 6, fontStyle: 'italic', lineHeight: 17 },
-
-  // ── Barre d'actions ──────────────────────────────────────
-  actionsBar: {
-    flexDirection: 'row', justifyContent: 'flex-end',
-    borderTopWidth: 1, borderTopColor: '#14142a',
-    paddingHorizontal: 10, paddingVertical: 7, gap: 4,
-  },
-  actionBtn: {
-    paddingHorizontal: 10, paddingVertical: 6,
-    borderRadius: 8,
-  },
-
-  // ── Confirmation suppression ─────────────────────────────
-  confirmBar: {
-    borderTopWidth: 1, borderTopColor: '#f8717120',
-    paddingHorizontal: 14, paddingVertical: 12, gap: 10,
-  },
-  confirmLabel: { color: '#f87171', fontSize: 13, fontWeight: '600' },
-  confirmBtns: { flexDirection: 'row', gap: 8 },
-  confirmYes: {
-    flex: 1, backgroundColor: '#f8717120', borderRadius: 10,
-    paddingVertical: 9, alignItems: 'center',
-    borderWidth: 1, borderColor: '#f8717138',
-  },
-  confirmYesText: { color: '#f87171', fontWeight: '700', fontSize: 13 },
-  confirmNo: {
-    flex: 1, backgroundColor: '#0e0e1d', borderRadius: 10,
-    paddingVertical: 9, alignItems: 'center',
-    borderWidth: 1, borderColor: '#1e1e36',
-  },
-  confirmNoText: { color: '#7272a0', fontWeight: '700', fontSize: 13 },
-});
+    confirmBar: {
+      borderTopWidth: 1, borderTopColor: '#f8717120',
+      paddingHorizontal: 14, paddingVertical: 12, gap: 10,
+    },
+    confirmLabel: { color: '#f87171', fontSize: 13, fontWeight: '600' },
+    confirmBtns: { flexDirection: 'row', gap: 8 },
+    confirmYes: {
+      flex: 1, backgroundColor: '#f8717120', borderRadius: 10,
+      paddingVertical: 9, alignItems: 'center',
+      borderWidth: 1, borderColor: '#f8717138',
+    },
+    confirmYesText: { color: '#f87171', fontWeight: '700', fontSize: 13 },
+    confirmNo: {
+      flex: 1, backgroundColor: c.surf, borderRadius: 10,
+      paddingVertical: 9, alignItems: 'center',
+      borderWidth: 1, borderColor: c.border,
+    },
+    confirmNoText: { color: c.t2, fontWeight: '700', fontSize: 13 },
+  });
+}

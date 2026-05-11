@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Modal, TextInput, ActivityIndicator, ScrollView,
@@ -7,6 +7,7 @@ import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme, ThemeColors } from '../../lib/ThemeContext';
 import { secondsToTime, secondsToPace } from '../../lib/prDetection';
 import LoginGate from '../../components/LoginGate';
 
@@ -57,6 +58,7 @@ function formatValue(value: number, unit: string): string {
 
 export default function RecordsScreen() {
   const { session } = useAuth();
+  const { theme } = useTheme();
   const [prs, setPrs] = useState<PR[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<PRCategory>('strength');
@@ -72,6 +74,7 @@ export default function RecordsScreen() {
 
   // Historique d'un mouvement
   const [historyMovement, setHistoryMovement] = useState<string | null>(null);
+  const styles = useMemo(() => makeStyles(theme), [theme]);
 
   useFocusEffect(
     useCallback(() => {
@@ -356,88 +359,78 @@ function formatDate(dateStr: string) {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: '2-digit' });
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#07070e', paddingTop: 56, paddingHorizontal: 16 },
-  centered: { justifyContent: 'center', alignItems: 'center' },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
-  header: { fontSize: 32, fontWeight: '900', color: '#eaeaf6', letterSpacing: -1 },
-  addBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    borderWidth: 1, borderRadius: 100,
-    paddingHorizontal: 14, paddingVertical: 8,
-    backgroundColor: '#0e0e1d',
-  },
-  addBtnText: { fontWeight: '700', fontSize: 12, letterSpacing: 0.3 },
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg, paddingTop: 56, paddingHorizontal: 16 },
+    centered: { justifyContent: 'center', alignItems: 'center' },
+    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+    header: { fontSize: 32, fontWeight: '900', color: c.t1, letterSpacing: -1 },
+    addBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      borderWidth: 1, borderRadius: 100,
+      paddingHorizontal: 14, paddingVertical: 8,
+      backgroundColor: c.surf, borderColor: c.border,
+    },
+    addBtnText: { fontWeight: '700', fontSize: 12, letterSpacing: 0.3 },
 
-  // ── Onglets catégorie ─────────────────────────────────────
-  tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#1e1e36', marginBottom: 18 },
-  tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomColor: 'transparent', borderBottomWidth: 2 },
-  tabText: { color: '#505070', fontWeight: '700', fontSize: 11, letterSpacing: 0.3 },
+    tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: c.border, marginBottom: 18 },
+    tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomColor: 'transparent', borderBottomWidth: 2 },
+    tabText: { color: c.t3, fontWeight: '700', fontSize: 11, letterSpacing: 0.3 },
 
-  // ── Empty ─────────────────────────────────────────────────
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
-  emptyText: { color: '#7272a0', fontSize: 15, fontWeight: '600' },
-  emptyHint: { color: '#505070', fontSize: 13 },
+    empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
+    emptyText: { color: c.t2, fontSize: 15, fontWeight: '600' },
+    emptyHint: { color: c.t3, fontSize: 13 },
 
-  // ── PR card ───────────────────────────────────────────────
-  prCard: {
-    borderRadius: 16, borderWidth: 1, padding: 16,
-    marginBottom: 10,
-  },
-  prCardTop: { flexDirection: 'row', alignItems: 'flex-start' },
-  prMovement: { color: '#eaeaf6', fontSize: 14, fontWeight: '700', marginBottom: 4, letterSpacing: -0.1 },
-  prValue: { fontSize: 28, fontWeight: '900', letterSpacing: -1 },
-  prMeta: { alignItems: 'flex-end', gap: 3 },
-  prDate: { color: '#7272a0', fontSize: 11 },
-  prCount: { color: '#505070', fontSize: 11 },
-  prArrow: { color: '#3d3d5e', fontSize: 11, marginTop: 4 },
+    prCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 10 },
+    prCardTop: { flexDirection: 'row', alignItems: 'flex-start' },
+    prMovement: { color: c.t1, fontSize: 14, fontWeight: '700', marginBottom: 4, letterSpacing: -0.1 },
+    prValue: { fontSize: 28, fontWeight: '900', letterSpacing: -1 },
+    prMeta: { alignItems: 'flex-end', gap: 3 },
+    prDate: { color: c.t2, fontSize: 11 },
+    prCount: { color: c.t3, fontSize: 11 },
+    prArrow: { color: c.t3, fontSize: 11, marginTop: 4 },
 
-  // ── Historique ────────────────────────────────────────────
-  history: {
-    marginTop: 14, borderTopWidth: 1,
-    borderTopColor: '#ffffff10', paddingTop: 12, gap: 8,
-  },
-  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  historyBest: {},
-  historyValue: { color: '#c8c8e0', fontWeight: '700', fontSize: 14, width: 96 },
-  historyDate: { color: '#7272a0', fontSize: 12, flex: 1 },
-  prBadge: {
-    fontSize: 9, fontWeight: '800',
-    borderWidth: 1, borderRadius: 100,
-    paddingHorizontal: 7, paddingVertical: 2,
-    letterSpacing: 0.5,
-  },
+    history: { marginTop: 14, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 12, gap: 8 },
+    historyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    historyBest: {},
+    historyValue: { color: c.t1, fontWeight: '700', fontSize: 14, width: 96 },
+    historyDate: { color: c.t2, fontSize: 12, flex: 1 },
+    prBadge: {
+      fontSize: 9, fontWeight: '800',
+      borderWidth: 1, borderRadius: 100,
+      paddingHorizontal: 7, paddingVertical: 2, letterSpacing: 0.5,
+    },
 
-  // ── Modal ─────────────────────────────────────────────────
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(4,4,12,0.85)', justifyContent: 'flex-end' },
-  modalSheet: {
-    backgroundColor: '#0e0e1d', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 22, paddingBottom: 44, gap: 4,
-    borderWidth: 1, borderColor: '#1e1e36',
-  },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  modalTitle: { color: '#eaeaf6', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
-  modalClose: { color: '#505070', fontSize: 20 },
-  modalLabel: {
-    color: '#505070', fontSize: 10, fontWeight: '700',
-    textTransform: 'uppercase', letterSpacing: 1.5,
-    marginTop: 14, marginBottom: 7,
-  },
-  modalRow: { flexDirection: 'row', gap: 10 },
-  modalInput: {
-    backgroundColor: '#141428', borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 13,
-    color: '#eaeaf6', fontSize: 15,
-    borderWidth: 1, borderColor: '#2a2a48',
-  },
-  modalCatBtn: {
-    flex: 1, paddingVertical: 9, borderRadius: 100, alignItems: 'center',
-    backgroundColor: '#141428', borderWidth: 1, borderColor: '#2a2a48',
-  },
-  modalCatText: { color: '#505070', fontWeight: '700', fontSize: 10, letterSpacing: 0.3 },
-  modalSave: {
-    backgroundColor: '#f26318', borderRadius: 14,
-    paddingVertical: 16, alignItems: 'center', marginTop: 18,
-  },
-  modalSaveText: { color: '#fff', fontWeight: '800', fontSize: 15, letterSpacing: 0.2 },
-});
+    modalOverlay: { flex: 1, backgroundColor: c.isDark ? 'rgba(4,4,12,0.85)' : 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+    modalSheet: {
+      backgroundColor: c.surf, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      padding: 22, paddingBottom: 44, gap: 4,
+      borderWidth: 1, borderColor: c.border,
+    },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+    modalTitle: { color: c.t1, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
+    modalClose: { color: c.t3, fontSize: 20 },
+    modalLabel: {
+      color: c.t3, fontSize: 10, fontWeight: '700',
+      textTransform: 'uppercase', letterSpacing: 1.5,
+      marginTop: 14, marginBottom: 7,
+    },
+    modalRow: { flexDirection: 'row', gap: 10 },
+    modalInput: {
+      backgroundColor: c.surf2, borderRadius: 12,
+      paddingHorizontal: 14, paddingVertical: 13,
+      color: c.t1, fontSize: 15,
+      borderWidth: 1, borderColor: c.border2,
+    },
+    modalCatBtn: {
+      flex: 1, paddingVertical: 9, borderRadius: 100, alignItems: 'center',
+      backgroundColor: c.surf2, borderWidth: 1, borderColor: c.border2,
+    },
+    modalCatText: { color: c.t3, fontWeight: '700', fontSize: 10, letterSpacing: 0.3 },
+    modalSave: {
+      backgroundColor: c.orange, borderRadius: 14,
+      paddingVertical: 16, alignItems: 'center', marginTop: 18,
+    },
+    modalSaveText: { color: '#fff', fontWeight: '800', fontSize: 15, letterSpacing: 0.2 },
+  });
+}

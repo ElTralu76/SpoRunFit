@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../lib/ThemeContext';
 
 const FEATURES = [
   {
@@ -31,10 +32,11 @@ const FEATURES = [
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { theme: c } = useTheme();
 
   return (
     <ScrollView
-      style={styles.scroll}
+      style={[styles.scroll, { backgroundColor: c.bg }]}
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
@@ -43,20 +45,20 @@ export default function WelcomeScreen() {
         <View style={styles.logoWrap}>
           <Text style={styles.logoEmoji}>🏋️</Text>
         </View>
-        <Text style={styles.appName}>SpoRunFit</Text>
-        <Text style={styles.tagline}>Ton journal sportif personnel</Text>
+        <Text style={[styles.appName, { color: c.t1 }]}>SpoRunFit</Text>
+        <Text style={[styles.tagline, { color: c.t2 }]}>Ton journal sportif personnel</Text>
       </View>
 
       {/* ── Features ── */}
-      <View style={styles.features}>
+      <View style={[styles.features, { backgroundColor: c.surf, borderColor: c.border }]}>
         {FEATURES.map((f, i) => (
           <View key={i} style={styles.featureRow}>
             <View style={[styles.featureIcon, { backgroundColor: f.color + '18' }]}>
               <Ionicons name={f.icon} size={20} color={f.color} />
             </View>
             <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>{f.title}</Text>
-              <Text style={styles.featureDesc}>{f.desc}</Text>
+              <Text style={[styles.featureTitle, { color: c.t1 }]}>{f.title}</Text>
+              <Text style={[styles.featureDesc, { color: c.t2 }]}>{f.desc}</Text>
             </View>
           </View>
         ))}
@@ -65,7 +67,7 @@ export default function WelcomeScreen() {
       {/* ── CTA ── */}
       <View style={styles.ctas}>
         <TouchableOpacity
-          style={styles.loginBtn}
+          style={[styles.loginBtn, { backgroundColor: c.orange }]}
           onPress={() => router.push('/(auth)/login')}
         >
           <Ionicons name="log-in-outline" size={18} color="#fff" />
@@ -73,13 +75,13 @@ export default function WelcomeScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.signupBtn}
+          style={[styles.signupBtn, { backgroundColor: c.surf, borderColor: c.border }]}
           onPress={() => router.push('/(auth)/signup')}
         >
-          <Text style={styles.signupBtnText}>Créer un compte gratuit</Text>
+          <Text style={[styles.signupBtnText, { color: c.t2 }]}>Créer un compte gratuit</Text>
         </TouchableOpacity>
 
-        <Text style={styles.browseHint}>
+        <Text style={[styles.browseHint, { color: c.t3 }]}>
           👇 Continue à naviguer pour explorer l'app
         </Text>
       </View>

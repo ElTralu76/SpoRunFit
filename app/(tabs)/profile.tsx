@@ -1,9 +1,10 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform, ActivityIndicator } from 'react-native';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
+import { useTheme, ThemeColors } from '../../lib/ThemeContext';
 import LoginGate from '../../components/LoginGate';
 
 type Stats = {
@@ -47,8 +48,10 @@ function computeStreak(dates: string[]): number {
 
 export default function ProfileScreen() {
   const { session } = useAuth();
+  const { theme, isDark, toggle } = useTheme();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const styles = useMemo(() => makeStyles(theme), [theme]);
 
   const displayName = session?.user?.user_metadata?.display_name
     ?? session?.user?.email?.split('@')[0]
@@ -137,35 +140,41 @@ export default function ProfileScreen() {
         </View>
       ) : stats ? (
         <View style={styles.statsGrid}>
-          <StatCard
-            icon="checkmark-circle-outline"
-            value={stats.completedSessions}
-            label="Séances"
-            color="#4ade80"
-          />
-          <StatCard
-            icon="flame-outline"
-            value={stats.streak}
-            label={stats.streak > 1 ? 'Jours de suite' : 'Jour de suite'}
-            color="#e85d04"
-          />
-          <StatCard
-            icon="barbell-outline"
-            value={stats.activePrograms}
-            label={stats.activePrograms > 1 ? 'Programmes' : 'Programme'}
-            color="#a78bfa"
-          />
+          <StatCard icon="checkmark-circle-outline" value={stats.completedSessions} label="Séances"    color="#4ade80" theme={theme} />
+          <StatCard icon="flame-outline"             value={stats.streak}            label={stats.streak > 1 ? 'Jours de suite' : 'Jour de suite'} color="#f26318" theme={theme} />
+          <StatCard icon="barbell-outline"           value={stats.activePrograms}    label={stats.activePrograms > 1 ? 'Programmes' : 'Programme'}  color="#a78bfa" theme={theme} />
         </View>
       ) : null}
 
       {/* ── Section paramètres ── */}
       <View style={styles.settingsSection}>
         <Text style={styles.sectionLabel}>Compte</Text>
-
         <View style={styles.settingsCard}>
-          <SettingRow icon="person-outline" label="Pseudo" value={displayName} />
+          <SettingRow icon="person-outline" label="Pseudo" value={displayName} theme={theme} />
           <View style={styles.settingDivider} />
-          <SettingRow icon="mail-outline" label="Email" value={email} />
+          <SettingRow icon="mail-outline" label="Email" value={email} theme={theme} />
+        </View>
+      </View>
+
+      {/* ── Apparence ── */}
+      <View style={styles.settingsSection}>
+        <Text style={styles.sectionLabel}>Apparence</Text>
+        <View style={styles.settingsCard}>
+          <TouchableOpacity style={styles.themeRow} onPress={toggle}>
+            <View style={styles.themeLeft}>
+              <Ionicons
+                name={isDark ? 'moon-outline' : 'sunny-outline'}
+                size={18} color={theme.t2}
+              />
+              <View>
+                <Text style={styles.settingLabel}>Thème</Text>
+                <Text style={styles.settingValue}>{isDark ? 'Sombre' : 'Clair'}</Text>
+              </View>
+            </View>
+            <View style={[styles.toggleTrack, isDark ? styles.toggleTrackOn : styles.toggleTrackOff]}>
+              <View style={[styles.toggleThumb, isDark ? styles.toggleThumbRight : styles.toggleThumbLeft]} />
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -182,12 +191,14 @@ export default function ProfileScreen() {
 
 // ─── Sub-components ───────────────────────────────────────
 
-function StatCard({ icon, value, label, color }: {
+function StatCard({ icon, value, label, color, theme }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   value: number;
   label: string;
   color: string;
+  theme: ThemeColors;
 }) {
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   return (
     <View style={styles.statCard}>
       <Ionicons name={icon} size={20} color={color} style={{ marginBottom: 6 }} />
@@ -197,14 +208,16 @@ function StatCard({ icon, value, label, color }: {
   );
 }
 
-function SettingRow({ icon, label, value }: {
+function SettingRow({ icon, label, value, theme }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   label: string;
   value: string;
+  theme: ThemeColors;
 }) {
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   return (
     <View style={styles.settingRow}>
-      <Ionicons name={icon} size={18} color="#555" />
+      <Ionicons name={icon} size={18} color={theme.t2} />
       <View style={{ flex: 1 }}>
         <Text style={styles.settingLabel}>{label}</Text>
         <Text style={styles.settingValue}>{value}</Text>
@@ -213,79 +226,86 @@ function SettingRow({ icon, label, value }: {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────
+// ─── Styles dynamiques ────────────────────────────────────
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1, backgroundColor: '#07070e',
-    paddingTop: 56, paddingHorizontal: 16,
-  },
-  header: {
-    fontSize: 32, fontWeight: '900', color: '#eaeaf6',
-    letterSpacing: -1, marginBottom: 22,
-  },
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg, paddingTop: 56, paddingHorizontal: 16 },
+    header: { fontSize: 32, fontWeight: '900', color: c.t1, letterSpacing: -1, marginBottom: 22 },
 
-  // ── Identité ──────────────────────────────────────────────
-  identityCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 18,
-    backgroundColor: '#0e0e1d', borderRadius: 18,
-    borderWidth: 1, borderColor: '#1e1e36',
-    padding: 18, marginBottom: 16,
-  },
-  avatarCircle: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: '#f2631812',
-    borderWidth: 2, borderColor: '#f26318',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  avatarInitials: { color: '#f26318', fontSize: 24, fontWeight: '900', letterSpacing: -1 },
-  identityInfo: { flex: 1, gap: 5 },
-  displayName: { color: '#eaeaf6', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
-  emailText: { color: '#7272a0', fontSize: 13 },
+    identityCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 18,
+      backgroundColor: c.surf, borderRadius: 18,
+      borderWidth: 1, borderColor: c.border,
+      padding: 18, marginBottom: 16,
+    },
+    avatarCircle: {
+      width: 64, height: 64, borderRadius: 32,
+      backgroundColor: c.orange + '12',
+      borderWidth: 2, borderColor: c.orange,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    avatarInitials: { color: c.orange, fontSize: 24, fontWeight: '900', letterSpacing: -1 },
+    identityInfo: { flex: 1, gap: 5 },
+    displayName: { color: c.t1, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
+    emailText: { color: c.t2, fontSize: 13 },
 
-  // ── Stats ─────────────────────────────────────────────────
-  statsLoading: { height: 96, justifyContent: 'center', alignItems: 'center' },
-  statsGrid: { flexDirection: 'row', gap: 10, marginBottom: 24 },
-  statCard: {
-    flex: 1, backgroundColor: '#0e0e1d',
-    borderRadius: 16, borderWidth: 1, borderColor: '#1e1e36',
-    padding: 16, alignItems: 'center', gap: 4,
-  },
-  statValue: { fontSize: 28, fontWeight: '900', lineHeight: 32, letterSpacing: -1 },
-  statLabel: {
-    color: '#505070', fontSize: 9, fontWeight: '700',
-    textTransform: 'uppercase', letterSpacing: 1,
-    textAlign: 'center', lineHeight: 13,
-  },
+    statsLoading: { height: 96, justifyContent: 'center', alignItems: 'center' },
+    statsGrid: { flexDirection: 'row', gap: 10, marginBottom: 24 },
+    statCard: {
+      flex: 1, backgroundColor: c.surf,
+      borderRadius: 16, borderWidth: 1, borderColor: c.border,
+      padding: 16, alignItems: 'center', gap: 4,
+    },
+    statValue: { fontSize: 28, fontWeight: '900', lineHeight: 32, letterSpacing: -1 },
+    statLabel: {
+      color: c.t3, fontSize: 9, fontWeight: '700',
+      textTransform: 'uppercase', letterSpacing: 1,
+      textAlign: 'center', lineHeight: 13,
+    },
 
-  // ── Settings ──────────────────────────────────────────────
-  settingsSection: { marginBottom: 22 },
-  sectionLabel: {
-    color: '#505070', fontSize: 10, fontWeight: '700',
-    textTransform: 'uppercase', letterSpacing: 1.5,
-    marginBottom: 10,
-  },
-  settingsCard: {
-    backgroundColor: '#0e0e1d', borderRadius: 16,
-    borderWidth: 1, borderColor: '#1e1e36',
-    overflow: 'hidden',
-  },
-  settingRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    paddingHorizontal: 18, paddingVertical: 15,
-  },
-  settingDivider: { height: 1, backgroundColor: '#14142a', marginHorizontal: 18 },
-  settingLabel: { color: '#505070', fontSize: 10, fontWeight: '700', marginBottom: 3, letterSpacing: 0.5 },
-  settingValue: { color: '#c8c8e0', fontSize: 14, fontWeight: '500' },
+    settingsSection: { marginBottom: 22 },
+    sectionLabel: {
+      color: c.t3, fontSize: 10, fontWeight: '700',
+      textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 10,
+    },
+    settingsCard: {
+      backgroundColor: c.surf, borderRadius: 16,
+      borderWidth: 1, borderColor: c.border, overflow: 'hidden',
+    },
+    settingRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 14,
+      paddingHorizontal: 18, paddingVertical: 15,
+    },
+    settingDivider: { height: 1, backgroundColor: c.border, marginHorizontal: 18 },
+    settingLabel: { color: c.t3, fontSize: 10, fontWeight: '700', marginBottom: 3, letterSpacing: 0.5 },
+    settingValue: { color: c.t1, fontSize: 14, fontWeight: '500' },
 
-  // ── Logout ────────────────────────────────────────────────
-  logoutButton: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 10, backgroundColor: '#f8717110', borderRadius: 14,
-    paddingVertical: 16, borderWidth: 1, borderColor: '#f8717128',
-    marginBottom: 24,
-  },
-  logoutText: { color: '#f87171', fontWeight: '700', fontSize: 14, letterSpacing: 0.2 },
+    // Toggle thème
+    themeRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 18, paddingVertical: 15,
+    },
+    themeLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    toggleTrack: {
+      width: 46, height: 26, borderRadius: 13,
+      padding: 2, justifyContent: 'center',
+    },
+    toggleTrackOn:  { backgroundColor: c.orange },
+    toggleTrackOff: { backgroundColor: c.border2 },
+    toggleThumb: {
+      width: 22, height: 22, borderRadius: 11,
+      backgroundColor: '#fff',
+    },
+    toggleThumbLeft:  { alignSelf: 'flex-start' },
+    toggleThumbRight: { alignSelf: 'flex-end' },
 
-  version: { color: '#3d3d5e', fontSize: 11, textAlign: 'center', letterSpacing: 0.5 },
-});
+    logoutButton: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      gap: 10, backgroundColor: '#f8717110', borderRadius: 14,
+      paddingVertical: 16, borderWidth: 1, borderColor: '#f8717128', marginBottom: 24,
+    },
+    logoutText: { color: '#f87171', fontWeight: '700', fontSize: 14, letterSpacing: 0.2 },
+    version: { color: c.t3, fontSize: 11, textAlign: 'center', letterSpacing: 0.5 },
+  });
+}

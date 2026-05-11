@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../lib/ThemeContext';
 
 type Props = {
   icon?: React.ComponentProps<typeof Ionicons>['name'];
@@ -14,29 +15,30 @@ export default function LoginGate({
   subtitle = 'Connecte-toi pour accéder à cette section.',
 }: Props) {
   const router = useRouter();
+  const { theme: c } = useTheme();
 
   return (
     <View style={styles.container}>
-      <View style={styles.iconWrap}>
-        <Ionicons name={icon} size={34} color="#f26318" />
+      <View style={[styles.iconWrap, { backgroundColor: c.orange + '10', borderColor: c.orange + '28' }]}>
+        <Ionicons name={icon} size={34} color={c.orange} />
       </View>
 
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
+      <Text style={[styles.title, { color: c.t1 }]}>{title}</Text>
+      <Text style={[styles.subtitle, { color: c.t2 }]}>{subtitle}</Text>
 
       <View style={styles.actions}>
         <TouchableOpacity
-          style={styles.loginBtn}
+          style={[styles.loginBtn, { backgroundColor: c.orange }]}
           onPress={() => router.push('/(auth)/login')}
         >
           <Text style={styles.loginBtnText}>Se connecter</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.signupBtn}
+          style={[styles.signupBtn, { backgroundColor: c.surf, borderColor: c.border }]}
           onPress={() => router.push('/(auth)/signup')}
         >
-          <Text style={styles.signupBtnText}>Créer un compte gratuit</Text>
+          <Text style={[styles.signupBtnText, { color: c.t2 }]}>Créer un compte gratuit</Text>
         </TouchableOpacity>
       </View>
     </View>

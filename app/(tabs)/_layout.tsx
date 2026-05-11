@@ -2,25 +2,29 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { View, StyleSheet } from 'react-native';
+import { useTheme } from '../../lib/ThemeContext';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 function TabIcon({ name, color, focused }: { name: IoniconName; color: string; focused: boolean }) {
+  const { theme } = useTheme();
   return (
-    <View style={focused ? styles.activeIconWrap : undefined}>
+    <View style={focused ? [styles.activeIconWrap, { backgroundColor: theme.orange + '18' }] : undefined}>
       <Ionicons name={name} size={focused ? 22 : 21} color={color} />
     </View>
   );
 }
 
 export default function TabsLayout() {
+  const { theme } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
           backgroundColor: 'transparent',
-          borderTopColor: '#1a1a30',
+          borderTopColor: theme.tabBorder,
           borderTopWidth: 1,
           height: 66,
           paddingBottom: 10,
@@ -29,12 +33,12 @@ export default function TabsLayout() {
         },
         tabBarBackground: () => (
           <LinearGradient
-            colors={['#0c0c1e', '#07070e']}
+            colors={[theme.tabBg1, theme.tabBg2]}
             style={StyleSheet.absoluteFill}
           />
         ),
-        tabBarActiveTintColor: '#f26318',
-        tabBarInactiveTintColor: '#383858',
+        tabBarActiveTintColor: theme.orange,
+        tabBarInactiveTintColor: theme.tabInactive,
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '700',
@@ -95,6 +99,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 3,
     borderRadius: 10,
-    backgroundColor: '#f2631816',
   },
 });
