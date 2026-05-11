@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { secondsToTime, secondsToPace } from '../../lib/prDetection';
+import LoginGate from '../../components/LoginGate';
 
 type PRCategory = 'strength' | 'run' | 'crossfit';
 
@@ -152,7 +153,32 @@ export default function RecordsScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator color="#e85d04" size="large" />
+        <ActivityIndicator color="#f26318" size="large" />
+      </View>
+    );
+  }
+
+  if (!session) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <Text style={styles.header}>Records</Text>
+        </View>
+        {/* Onglets catégorie visibles mais contenu protégé */}
+        <View style={styles.tabs}>
+          {(Object.keys(CATEGORY_LABELS) as PRCategory[]).map(cat => (
+            <View key={cat} style={[styles.tab, activeCategory === cat && { borderBottomColor: CATEGORY_ACCENT[cat], borderBottomWidth: 2 }]}>
+              <Text style={[styles.tabText, activeCategory === cat && { color: CATEGORY_ACCENT[cat] }]}>
+                {CATEGORY_LABELS[cat]}
+              </Text>
+            </View>
+          ))}
+        </View>
+        <LoginGate
+          icon="trophy-outline"
+          title="Tes records personnels"
+          subtitle="Connecte-toi pour suivre tes PRs en force, course et CrossFit — détectés automatiquement après chaque séance."
+        />
       </View>
     );
   }

@@ -136,6 +136,10 @@ export default function ProgramDetailScreen() {
 
   // ── Clic sur "Commencer" ──────────────────────────────
   function handleStartClick() {
+    if (!session?.user) {
+      router.push('/(auth)/login');
+      return;
+    }
     const cfgType = tpl ? CONFIG_TYPE[tpl.id] : undefined;
     if (!cfgType) {
       handleStart(undefined);

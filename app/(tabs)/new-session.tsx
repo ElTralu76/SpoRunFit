@@ -13,6 +13,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import WodCustomBuilder, { WodBlock } from '../../components/WodCustomBuilder';
 import { detectRunPRs, detectRenfoPRs, detectCrossfitPR, savePRs } from '../../lib/prDetection';
+import LoginGate from '../../components/LoginGate';
 
 type SessionType = 'run' | 'crossfit' | 'renfo' | 'autre';
 type Visibility = 'private' | 'friends' | 'public';
@@ -184,6 +185,19 @@ export default function NewSessionScreen() {
   }
 
   const selectedWod = benchmarkWods.find(w => w.id === selectedWodId);
+
+  if (!session) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.header}>Nouvelle séance</Text>
+        <LoginGate
+          icon="add-circle-outline"
+          title="Connecte-toi pour ajouter"
+          subtitle="Crée ton compte pour enregistrer tes séances, suivre ta progression et débloquer tous les programmes."
+        />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>

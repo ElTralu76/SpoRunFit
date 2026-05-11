@@ -7,6 +7,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import WelcomeScreen from '../../components/WelcomeScreen';
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -151,9 +152,14 @@ export default function JournalScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator color="#e85d04" size="large" />
+        <ActivityIndicator color="#f26318" size="large" />
       </View>
     );
+  }
+
+  // Non connecté → écran d'accueil
+  if (!session) {
+    return <WelcomeScreen />;
   }
 
   return (

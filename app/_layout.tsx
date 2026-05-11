@@ -22,18 +22,18 @@ export default function RootLayout() {
 
     const inAuthGroup = segments[0] === '(auth)';
 
-    if (!session && !inAuthGroup) {
-      router.replace('/(auth)/login');
-    } else if (session && inAuthGroup) {
+    // Si connecté et sur une page auth → on renvoie vers l'app
+    if (session && inAuthGroup) {
       router.replace('/(tabs)');
     }
+    // Si non connecté → on laisse naviguer librement (pas de redirection forcée)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, loading, navState?.key]);
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0f0f0f', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator color="#e85d04" size="large" />
+      <View style={{ flex: 1, backgroundColor: '#07070e', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator color="#f26318" size="large" />
       </View>
     );
   }

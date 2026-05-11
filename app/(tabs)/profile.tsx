@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
+import LoginGate from '../../components/LoginGate';
 
 type Stats = {
   totalSessions: number;
@@ -99,6 +100,19 @@ export default function ProfileScreen() {
         { text: 'Déconnexion', style: 'destructive', onPress: () => supabase.auth.signOut() },
       ]);
     }
+  }
+
+  if (!session) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.header}>Profil</Text>
+        <LoginGate
+          icon="person-circle-outline"
+          title="Ton espace perso"
+          subtitle="Connecte-toi pour accéder à ton profil, tes statistiques et tes programmes en cours."
+        />
+      </View>
+    );
   }
 
   return (
