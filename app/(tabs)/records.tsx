@@ -31,14 +31,14 @@ const CATEGORY_LABELS: Record<PRCategory, string> = {
 
 const CATEGORY_ACCENT: Record<PRCategory, string> = {
   strength: '#a78bfa',
-  run: '#60a5fa',
-  crossfit: '#e85d04',
+  run:      '#60a5fa',
+  crossfit: '#f26318',
 };
 
 const CATEGORY_BG: Record<PRCategory, string> = {
-  strength: '#1a1a3a',
-  run: '#1a2a4a',
-  crossfit: '#2a1500',
+  strength: '#0f0f1e',
+  run:      '#0c1220',
+  crossfit: '#130a00',
 };
 
 const UNIT_LABELS: Record<string, string> = {
@@ -331,78 +331,87 @@ function formatDate(dateStr: string) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a', paddingTop: 56, paddingHorizontal: 16 },
+  container: { flex: 1, backgroundColor: '#07070e', paddingTop: 56, paddingHorizontal: 16 },
   centered: { justifyContent: 'center', alignItems: 'center' },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  header: { fontSize: 28, fontWeight: '800', color: '#fff' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+  header: { fontSize: 32, fontWeight: '900', color: '#eaeaf6', letterSpacing: -1 },
   addBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    borderWidth: 1, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 8,
-    backgroundColor: '#111',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderWidth: 1, borderRadius: 100,
+    paddingHorizontal: 14, paddingVertical: 8,
+    backgroundColor: '#0e0e1d',
   },
-  addBtnText: { fontWeight: '700', fontSize: 13 },
+  addBtnText: { fontWeight: '700', fontSize: 12, letterSpacing: 0.3 },
 
-  // Tabs
-  tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#1c1c1c', marginBottom: 16 },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomColor: 'transparent', borderBottomWidth: 2 },
-  tabText: { color: '#888', fontWeight: '700', fontSize: 12 },
+  // ── Onglets catégorie ─────────────────────────────────────
+  tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#1e1e36', marginBottom: 18 },
+  tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomColor: 'transparent', borderBottomWidth: 2 },
+  tabText: { color: '#505070', fontWeight: '700', fontSize: 11, letterSpacing: 0.3 },
 
-  // Empty
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8 },
-  emptyText: { color: '#ccc', fontSize: 16 },
-  emptyHint: { color: '#888', fontSize: 13 },
+  // ── Empty ─────────────────────────────────────────────────
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
+  emptyText: { color: '#7272a0', fontSize: 15, fontWeight: '600' },
+  emptyHint: { color: '#505070', fontSize: 13 },
 
-  // PR card
+  // ── PR card ───────────────────────────────────────────────
   prCard: {
-    borderRadius: 12, borderWidth: 1, padding: 14,
+    borderRadius: 16, borderWidth: 1, padding: 16,
     marginBottom: 10,
   },
   prCardTop: { flexDirection: 'row', alignItems: 'flex-start' },
-  prMovement: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 2 },
-  prValue: { fontSize: 22, fontWeight: '800' },
-  prMeta: { alignItems: 'flex-end', gap: 2 },
-  prDate: { color: '#888', fontSize: 11 },
-  prCount: { color: '#777', fontSize: 11 },
-  prArrow: { color: '#666', fontSize: 12, marginTop: 4 },
+  prMovement: { color: '#eaeaf6', fontSize: 14, fontWeight: '700', marginBottom: 4, letterSpacing: -0.1 },
+  prValue: { fontSize: 28, fontWeight: '900', letterSpacing: -1 },
+  prMeta: { alignItems: 'flex-end', gap: 3 },
+  prDate: { color: '#7272a0', fontSize: 11 },
+  prCount: { color: '#505070', fontSize: 11 },
+  prArrow: { color: '#3d3d5e', fontSize: 11, marginTop: 4 },
 
-  // History
-  history: { marginTop: 12, borderTopWidth: 1, borderTopColor: '#ffffff15', paddingTop: 10, gap: 6 },
-  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // ── Historique ────────────────────────────────────────────
+  history: {
+    marginTop: 14, borderTopWidth: 1,
+    borderTopColor: '#ffffff10', paddingTop: 12, gap: 8,
+  },
+  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   historyBest: {},
-  historyValue: { color: '#ccc', fontWeight: '700', fontSize: 14, width: 90 },
-  historyDate: { color: '#888', fontSize: 12, flex: 1 },
+  historyValue: { color: '#c8c8e0', fontWeight: '700', fontSize: 14, width: 96 },
+  historyDate: { color: '#7272a0', fontSize: 12, flex: 1 },
   prBadge: {
-    fontSize: 10, fontWeight: '800',
-    borderWidth: 1, borderRadius: 4,
-    paddingHorizontal: 5, paddingVertical: 1,
+    fontSize: 9, fontWeight: '800',
+    borderWidth: 1, borderRadius: 100,
+    paddingHorizontal: 7, paddingVertical: 2,
+    letterSpacing: 0.5,
   },
 
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  // ── Modal ─────────────────────────────────────────────────
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(4,4,12,0.85)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: '#141414', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 20, paddingBottom: 40, gap: 4,
+    backgroundColor: '#0e0e1d', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 22, paddingBottom: 44, gap: 4,
+    borderWidth: 1, borderColor: '#1e1e36',
   },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  modalTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  modalClose: { color: '#666', fontSize: 20 },
-  modalLabel: { color: '#999', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginTop: 12, marginBottom: 6 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  modalTitle: { color: '#eaeaf6', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
+  modalClose: { color: '#505070', fontSize: 20 },
+  modalLabel: {
+    color: '#505070', fontSize: 10, fontWeight: '700',
+    textTransform: 'uppercase', letterSpacing: 1.5,
+    marginTop: 14, marginBottom: 7,
+  },
   modalRow: { flexDirection: 'row', gap: 10 },
   modalInput: {
-    backgroundColor: '#1c1c1c', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12,
-    color: '#fff', fontSize: 15,
-    borderWidth: 1, borderColor: '#2a2a2a',
+    backgroundColor: '#141428', borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 13,
+    color: '#eaeaf6', fontSize: 15,
+    borderWidth: 1, borderColor: '#2a2a48',
   },
   modalCatBtn: {
-    flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: 'center',
-    backgroundColor: '#1c1c1c', borderWidth: 1, borderColor: '#2a2a2a',
+    flex: 1, paddingVertical: 9, borderRadius: 100, alignItems: 'center',
+    backgroundColor: '#141428', borderWidth: 1, borderColor: '#2a2a48',
   },
-  modalCatText: { color: '#555', fontWeight: '700', fontSize: 11 },
+  modalCatText: { color: '#505070', fontWeight: '700', fontSize: 10, letterSpacing: 0.3 },
   modalSave: {
-    backgroundColor: '#e85d04', borderRadius: 12,
-    paddingVertical: 15, alignItems: 'center', marginTop: 16,
+    backgroundColor: '#f26318', borderRadius: 14,
+    paddingVertical: 16, alignItems: 'center', marginTop: 18,
   },
-  modalSaveText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  modalSaveText: { color: '#fff', fontWeight: '800', fontSize: 15, letterSpacing: 0.2 },
 });

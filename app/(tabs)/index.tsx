@@ -261,95 +261,97 @@ export default function JournalScreen() {
             const dur = formatDuration(item.duration);
 
             return (
-              <View style={[
-                styles.card,
-                isConfirming && styles.cardConfirming,
-              ]}>
-                {/* Barre gauche colorée */}
-                <View style={[styles.cardAccentBar, { backgroundColor: statusCfg.barColor }]} />
+              <View style={[styles.card, isConfirming && styles.cardConfirming]}>
+                {/* ── Barre couleur verticale gauche ── */}
+                <View style={[styles.cardStripe, { backgroundColor: statusCfg.barColor }]} />
 
-                {/* Zone tappable */}
-                <TouchableOpacity
-                  style={styles.cardBody}
-                  onPress={() => {
-                    if (isConfirming) { setConfirmDeleteId(null); return; }
-                    router.push(`/session/${item.id}`);
-                  }}
-                  activeOpacity={0.75}
-                >
-                  <View style={styles.cardTop}>
-                    <View style={styles.cardTitleRow}>
-                      <Text style={styles.cardTypeIcon}>{typeCfg.icon}</Text>
-                      <Text style={[styles.cardType, { color: typeCfg.color }]}>
-                        {typeCfg.label}
-                      </Text>
+                {/* ── Contenu ── */}
+                <View style={styles.cardInner}>
+                  <TouchableOpacity
+                    style={styles.cardBody}
+                    onPress={() => {
+                      if (isConfirming) { setConfirmDeleteId(null); return; }
+                      router.push(`/session/${item.id}`);
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <View style={styles.cardTop}>
+                      {/* Type + date */}
+                      <View style={styles.cardTitleRow}>
+                        <View style={[styles.typeIconWrap, { backgroundColor: typeCfg.color + '18' }]}>
+                          <Text style={styles.cardTypeIcon}>{typeCfg.icon}</Text>
+                        </View>
+                        <View style={{ gap: 2 }}>
+                          <Text style={[styles.cardType, { color: typeCfg.color }]}>{typeCfg.label}</Text>
+                          <View style={styles.cardMetaRow}>
+                            <Text style={styles.cardDate}>{formatDate(item.date)}</Text>
+                            {dur && (
+                              <>
+                                <Text style={styles.cardMetaDot}>·</Text>
+                                <Text style={styles.cardMeta}>{dur}</Text>
+                              </>
+                            )}
+                          </View>
+                        </View>
+                      </View>
+                      {/* Status badge */}
+                      <View style={[styles.statusBadge, {
+                        borderColor: statusCfg.color + '30',
+                        backgroundColor: statusCfg.color + '0c',
+                      }]}>
+                        <Text style={[styles.statusLabel, { color: statusCfg.color }]}>
+                          {statusCfg.icon}  {statusCfg.label}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={[styles.statusBadge, { borderColor: statusCfg.color + '40' }]}>
-                      <Text style={[styles.statusIcon, { color: statusCfg.color }]}>
-                        {statusCfg.icon}
-                      </Text>
-                      <Text style={[styles.statusLabel, { color: statusCfg.color }]}>
-                        {statusCfg.label}
-                      </Text>
-                    </View>
-                  </View>
 
-                  <View style={styles.cardMetaRow}>
-                    <Text style={styles.cardDate}>{formatDate(item.date)}</Text>
-                    {dur && (
-                      <>
-                        <Text style={styles.cardMetaDot}>·</Text>
-                        <Text style={styles.cardMeta}>{dur}</Text>
-                      </>
+                    {item.notes && (
+                      <Text style={styles.cardNotes} numberOfLines={1}>{item.notes}</Text>
                     )}
-                  </View>
+                  </TouchableOpacity>
 
-                  {item.notes && (
-                    <Text style={styles.cardNotes} numberOfLines={1}>{item.notes}</Text>
-                  )}
-                </TouchableOpacity>
-
-                {/* Actions */}
-                {!isConfirming ? (
-                  <View style={styles.actionsBar}>
-                    <TouchableOpacity
-                      style={styles.actionBtn}
-                      onPress={() => router.push(`/edit-session/${item.id}`)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Ionicons name="pencil-outline" size={15} color="#555" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.actionBtn}
-                      onPress={() => setConfirmDeleteId(item.id)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Ionicons name="trash-outline" size={15} color="#555" />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={styles.confirmBar}>
-                    <Text style={styles.confirmLabel}>Supprimer cette séance ?</Text>
-                    <View style={styles.confirmBtns}>
+                  {/* Actions / Confirm */}
+                  {!isConfirming ? (
+                    <View style={styles.actionsBar}>
                       <TouchableOpacity
-                        style={styles.confirmYes}
-                        onPress={() => handleDelete(item.id)}
-                        disabled={deleting}
+                        style={styles.actionBtn}
+                        onPress={() => router.push(`/edit-session/${item.id}`)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
-                        {deleting
-                          ? <ActivityIndicator color="#fff" size="small" />
-                          : <Text style={styles.confirmYesText}>Supprimer</Text>
-                        }
+                        <Ionicons name="pencil-outline" size={14} color="#484868" />
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={styles.confirmNo}
-                        onPress={() => setConfirmDeleteId(null)}
+                        style={styles.actionBtn}
+                        onPress={() => setConfirmDeleteId(item.id)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
-                        <Text style={styles.confirmNoText}>Annuler</Text>
+                        <Ionicons name="trash-outline" size={14} color="#484868" />
                       </TouchableOpacity>
                     </View>
-                  </View>
-                )}
+                  ) : (
+                    <View style={styles.confirmBar}>
+                      <Text style={styles.confirmLabel}>Supprimer cette séance ?</Text>
+                      <View style={styles.confirmBtns}>
+                        <TouchableOpacity
+                          style={styles.confirmYes}
+                          onPress={() => handleDelete(item.id)}
+                          disabled={deleting}
+                        >
+                          {deleting
+                            ? <ActivityIndicator color="#fff" size="small" />
+                            : <Text style={styles.confirmYesText}>Supprimer</Text>
+                          }
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.confirmNo}
+                          onPress={() => setConfirmDeleteId(null)}
+                        >
+                          <Text style={styles.confirmNoText}>Annuler</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </View>
               </View>
             );
           }}
@@ -362,118 +364,128 @@ export default function JournalScreen() {
 // ─── Styles ───────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: '#0a0a0a', paddingTop: 56, paddingHorizontal: 16 },
+  container:  { flex: 1, backgroundColor: '#07070e', paddingTop: 56, paddingHorizontal: 16 },
   centered:   { justifyContent: 'center', alignItems: 'center' },
 
-  // Header
-  headerSection: { marginBottom: 14 },
+  // ── Header ──────────────────────────────────────────────
+  headerSection: { marginBottom: 16 },
   headerTop: {
     flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'flex-end', marginBottom: 14,
+    alignItems: 'flex-end', marginBottom: 16,
   },
-  dateLabel:  { color: '#666', fontSize: 12, fontWeight: '600', marginBottom: 2 },
-  header:     { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  dateLabel: {
+    color: '#f26318', fontSize: 10, fontWeight: '700',
+    textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4,
+  },
+  header: { fontSize: 32, fontWeight: '900', color: '#eaeaf6', letterSpacing: -1 },
   importCsvBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#161616', borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderWidth: 1, borderColor: '#242424',
+    backgroundColor: '#f2631810', borderRadius: 12,
+    paddingHorizontal: 13, paddingVertical: 9,
+    borderWidth: 1, borderColor: '#f2631828',
   },
-  importCsvText: { color: '#e85d04', fontWeight: '700', fontSize: 13 },
+  importCsvText: { color: '#f26318', fontWeight: '700', fontSize: 12, letterSpacing: 0.3 },
 
-  // Stats row
+  // ── Stats ────────────────────────────────────────────────
   statsRow: {
-    flexDirection: 'row', backgroundColor: '#111',
-    borderRadius: 12, borderWidth: 1, borderColor: '#1e1e1e',
-    paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center',
+    flexDirection: 'row',
+    backgroundColor: '#0e0e1d',
+    borderRadius: 14, borderWidth: 1, borderColor: '#1e1e36',
+    paddingVertical: 14, paddingHorizontal: 20, alignItems: 'center',
   },
-  statChip: { flex: 1, alignItems: 'center', gap: 2 },
-  statValue: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  statLabel: { color: '#777', fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
-  statDivider: { width: 1, height: 28, backgroundColor: '#1e1e1e' },
+  statChip: { flex: 1, alignItems: 'center', gap: 3 },
+  statValue: { color: '#eaeaf6', fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
+  statLabel: { color: '#505070', fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
+  statDivider: { width: 1, height: 32, backgroundColor: '#1e1e36' },
 
-  // Filtres
-  filtersScroll: { flexGrow: 0, marginBottom: 12 },
+  // ── Filtres ──────────────────────────────────────────────
+  filtersScroll: { flexGrow: 0, marginBottom: 14 },
   filtersRow: { flexDirection: 'row', gap: 7, paddingBottom: 4 },
   filterChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 12, paddingVertical: 7,
-    borderRadius: 20, borderWidth: 1,
-    backgroundColor: '#111', borderColor: '#1e1e1e',
+    borderRadius: 100, borderWidth: 1,
+    backgroundColor: '#0e0e1d', borderColor: '#1e1e36',
   },
-  filterChipAll: { backgroundColor: '#1a0e00', borderColor: '#e85d04' },
-  filterChipIcon: { fontSize: 12 },
-  filterChipText: { color: '#777', fontSize: 12, fontWeight: '700' },
-  filterChipTextAll: { color: '#e85d04' },
+  filterChipAll: { backgroundColor: '#f2631814', borderColor: '#f2631840' },
+  filterChipIcon: { fontSize: 11 },
+  filterChipText: { color: '#505070', fontSize: 11, fontWeight: '700' },
+  filterChipTextAll: { color: '#f26318' },
 
-  // Empty
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  emptyText: { color: '#888', fontSize: 15 },
-  emptyHint: { color: '#e85d04', fontSize: 13, fontWeight: '600' },
+  // ── Empty ─────────────────────────────────────────────────
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14 },
+  emptyText: { color: '#7272a0', fontSize: 15, fontWeight: '600' },
+  emptyHint: { color: '#f26318', fontSize: 13, fontWeight: '600' },
 
-  // Carte
+  // ── Carte ─────────────────────────────────────────────────
   card: {
-    borderRadius: 14, marginBottom: 10,
-    borderWidth: 1, borderColor: '#1e1e1e',
-    backgroundColor: '#111',
+    flexDirection: 'row',
+    borderRadius: 16, marginBottom: 10,
+    borderWidth: 1, borderColor: '#1e1e36',
+    backgroundColor: '#0e0e1d',
     overflow: 'hidden',
-    flexDirection: 'column',
   },
-  cardConfirming: { borderColor: '#f8717140' },
-  cardAccentBar: { height: 3, width: '100%' },
-  cardBody: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 10 },
+  cardConfirming: { borderColor: '#f8717138' },
+
+  // Barre colorée verticale gauche
+  cardStripe: { width: 4 },
+
+  // Contenu à droite de la barre
+  cardInner: { flex: 1 },
+  cardBody: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10 },
 
   cardTop: {
     flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 6,
+    alignItems: 'center', marginBottom: 8,
   },
-  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cardTypeIcon: { fontSize: 18 },
-  cardType: { fontSize: 15, fontWeight: '700' },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  typeIconWrap: {
+    width: 36, height: 36, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  cardTypeIcon: { fontSize: 17 },
+  cardType: { fontSize: 14, fontWeight: '700', letterSpacing: 0.1 },
 
   statusBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 8, borderWidth: 1,
-    backgroundColor: '#0a0a0a',
+    paddingHorizontal: 9, paddingVertical: 4,
+    borderRadius: 100, borderWidth: 1,
   },
-  statusIcon:  { fontSize: 11, fontWeight: '700' },
-  statusLabel: { fontSize: 11, fontWeight: '700' },
+  statusLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
 
-  cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  cardDate:    { color: '#888', fontSize: 13 },
-  cardMetaDot: { color: '#666', fontSize: 12 },
-  cardMeta:    { color: '#bbb', fontSize: 13, fontWeight: '600' },
-  cardNotes:   { color: '#777', fontSize: 12, marginTop: 5, fontStyle: 'italic' },
+  cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1 },
+  cardDate:    { color: '#7272a0', fontSize: 12 },
+  cardMetaDot: { color: '#3d3d5e', fontSize: 11 },
+  cardMeta:    { color: '#9090b8', fontSize: 12, fontWeight: '600' },
+  cardNotes:   { color: '#505070', fontSize: 12, marginTop: 6, fontStyle: 'italic', lineHeight: 17 },
 
-  // Barre d'actions
+  // ── Barre d'actions ──────────────────────────────────────
   actionsBar: {
     flexDirection: 'row', justifyContent: 'flex-end',
-    borderTopWidth: 1, borderTopColor: '#161616',
-    paddingHorizontal: 12, paddingVertical: 8, gap: 4,
+    borderTopWidth: 1, borderTopColor: '#14142a',
+    paddingHorizontal: 10, paddingVertical: 7, gap: 4,
   },
   actionBtn: {
-    paddingHorizontal: 10, paddingVertical: 5,
-    borderRadius: 8, backgroundColor: '#0a0a0a',
-    borderWidth: 1, borderColor: '#1a1a1a',
+    paddingHorizontal: 10, paddingVertical: 6,
+    borderRadius: 8,
   },
 
-  // Confirmation suppression
+  // ── Confirmation suppression ─────────────────────────────
   confirmBar: {
-    borderTopWidth: 1, borderTopColor: '#f8717125',
+    borderTopWidth: 1, borderTopColor: '#f8717120',
     paddingHorizontal: 14, paddingVertical: 12, gap: 10,
   },
   confirmLabel: { color: '#f87171', fontSize: 13, fontWeight: '600' },
   confirmBtns: { flexDirection: 'row', gap: 8 },
   confirmYes: {
-    flex: 1, backgroundColor: '#f87171', borderRadius: 8,
+    flex: 1, backgroundColor: '#f8717120', borderRadius: 10,
     paddingVertical: 9, alignItems: 'center',
+    borderWidth: 1, borderColor: '#f8717138',
   },
-  confirmYesText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  confirmYesText: { color: '#f87171', fontWeight: '700', fontSize: 13 },
   confirmNo: {
-    flex: 1, backgroundColor: '#1a1a1a', borderRadius: 8,
+    flex: 1, backgroundColor: '#0e0e1d', borderRadius: 10,
     paddingVertical: 9, alignItems: 'center',
-    borderWidth: 1, borderColor: '#2a2a2a',
+    borderWidth: 1, borderColor: '#1e1e36',
   },
-  confirmNoText: { color: '#888', fontWeight: '700', fontSize: 14 },
+  confirmNoText: { color: '#7272a0', fontWeight: '700', fontSize: 13 },
 });

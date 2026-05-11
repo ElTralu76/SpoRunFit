@@ -203,76 +203,75 @@ function SettingRow({ icon, label, value }: {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#0a0a0a',
-    paddingTop: 56,
-    paddingHorizontal: 16,
+    flex: 1, backgroundColor: '#07070e',
+    paddingTop: 56, paddingHorizontal: 16,
   },
   header: {
-    fontSize: 28, fontWeight: '800', color: '#fff',
-    letterSpacing: -0.5, marginBottom: 20,
+    fontSize: 32, fontWeight: '900', color: '#eaeaf6',
+    letterSpacing: -1, marginBottom: 22,
   },
 
-  // Identité
+  // ── Identité ──────────────────────────────────────────────
   identityCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 16,
-    backgroundColor: '#111', borderRadius: 16,
-    borderWidth: 1, borderColor: '#1e1e1e',
-    padding: 16, marginBottom: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 18,
+    backgroundColor: '#0e0e1d', borderRadius: 18,
+    borderWidth: 1, borderColor: '#1e1e36',
+    padding: 18, marginBottom: 16,
   },
   avatarCircle: {
-    width: 60, height: 60, borderRadius: 30,
-    backgroundColor: '#1a0e00',
-    borderWidth: 2, borderColor: '#e85d04',
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: '#f2631812',
+    borderWidth: 2, borderColor: '#f26318',
     justifyContent: 'center', alignItems: 'center',
   },
-  avatarInitials: { color: '#e85d04', fontSize: 22, fontWeight: '800' },
-  identityInfo: { flex: 1, gap: 4 },
-  displayName: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  emailText: { color: '#888', fontSize: 13 },
+  avatarInitials: { color: '#f26318', fontSize: 24, fontWeight: '900', letterSpacing: -1 },
+  identityInfo: { flex: 1, gap: 5 },
+  displayName: { color: '#eaeaf6', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
+  emailText: { color: '#7272a0', fontSize: 13 },
 
-  // Stats
-  statsLoading: { height: 90, justifyContent: 'center', alignItems: 'center' },
-  statsGrid: {
-    flexDirection: 'row', gap: 10,
-    marginBottom: 24,
-  },
+  // ── Stats ─────────────────────────────────────────────────
+  statsLoading: { height: 96, justifyContent: 'center', alignItems: 'center' },
+  statsGrid: { flexDirection: 'row', gap: 10, marginBottom: 24 },
   statCard: {
-    flex: 1, backgroundColor: '#111',
-    borderRadius: 14, borderWidth: 1, borderColor: '#1e1e1e',
-    padding: 14, alignItems: 'center',
+    flex: 1, backgroundColor: '#0e0e1d',
+    borderRadius: 16, borderWidth: 1, borderColor: '#1e1e36',
+    padding: 16, alignItems: 'center', gap: 4,
   },
-  statValue: { fontSize: 24, fontWeight: '800', lineHeight: 28 },
-  statLabel: { color: '#777', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginTop: 2, textAlign: 'center' },
-
-  // Settings
-  settingsSection: { marginBottom: 24 },
-  sectionLabel: {
-    color: '#666', fontSize: 10, fontWeight: '700',
+  statValue: { fontSize: 28, fontWeight: '900', lineHeight: 32, letterSpacing: -1 },
+  statLabel: {
+    color: '#505070', fontSize: 9, fontWeight: '700',
     textTransform: 'uppercase', letterSpacing: 1,
-    marginBottom: 8,
+    textAlign: 'center', lineHeight: 13,
+  },
+
+  // ── Settings ──────────────────────────────────────────────
+  settingsSection: { marginBottom: 22 },
+  sectionLabel: {
+    color: '#505070', fontSize: 10, fontWeight: '700',
+    textTransform: 'uppercase', letterSpacing: 1.5,
+    marginBottom: 10,
   },
   settingsCard: {
-    backgroundColor: '#111', borderRadius: 14,
-    borderWidth: 1, borderColor: '#1e1e1e',
+    backgroundColor: '#0e0e1d', borderRadius: 16,
+    borderWidth: 1, borderColor: '#1e1e36',
     overflow: 'hidden',
   },
   settingRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    paddingHorizontal: 16, paddingVertical: 14,
+    paddingHorizontal: 18, paddingVertical: 15,
   },
-  settingDivider: { height: 1, backgroundColor: '#161616', marginHorizontal: 16 },
-  settingLabel: { color: '#777', fontSize: 11, fontWeight: '600', marginBottom: 2 },
-  settingValue: { color: '#ccc', fontSize: 14 },
+  settingDivider: { height: 1, backgroundColor: '#14142a', marginHorizontal: 18 },
+  settingLabel: { color: '#505070', fontSize: 10, fontWeight: '700', marginBottom: 3, letterSpacing: 0.5 },
+  settingValue: { color: '#c8c8e0', fontSize: 14, fontWeight: '500' },
 
-  // Logout
+  // ── Logout ────────────────────────────────────────────────
   logoutButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 10, backgroundColor: '#111', borderRadius: 12,
-    paddingVertical: 15, borderWidth: 1, borderColor: '#f8717125',
+    gap: 10, backgroundColor: '#f8717110', borderRadius: 14,
+    paddingVertical: 16, borderWidth: 1, borderColor: '#f8717128',
     marginBottom: 24,
   },
-  logoutText: { color: '#f87171', fontWeight: '600', fontSize: 15 },
+  logoutText: { color: '#f87171', fontWeight: '700', fontSize: 14, letterSpacing: 0.2 },
 
-  version: { color: '#444', fontSize: 11, textAlign: 'center' },
+  version: { color: '#3d3d5e', fontSize: 11, textAlign: 'center', letterSpacing: 0.5 },
 });
