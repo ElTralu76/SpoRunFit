@@ -9,6 +9,7 @@ import { useAuth } from '../../hooks/useAuth';
 import {
   getProgramById, ProgramSession,
   generatePavelSessions, generateWendlerSessions, WendlerConfig,
+  WENDLER_LIFTS,
 } from '../../lib/programs';
 
 // ─── Types ────────────────────────────────────────────────
@@ -138,7 +139,8 @@ export default function ProgramDetailScreen() {
     setConfigDraft(
       cfgType === 'pavel'
         ? { pullup_max: '5' }
-        : { squat: '100', bench: '80', deadlift: '120', ohp: '60' },
+        : { squat: '100', bench: '80', deadlift: '120', ohp: '60',
+            squat_on: 'on', bench_on: 'on', deadlift_on: 'on', ohp_on: 'on' },
     );
     setShowConfig(true);
   }
@@ -155,12 +157,25 @@ export default function ProgramDetailScreen() {
       }
       handleStart({ pullup_max: max });
     } else if (cfgType === 'wendler') {
-      const vals = ['squat', 'bench', 'deadlift', 'ohp'].map(k => parseFloat(configDraft[k] ?? ''));
-      if (vals.some(v => isNaN(v) || v <= 0)) {
-        showMsg('⚠️ Entre tes 4 charges en kg', false, 3000);
+      const config: Record<string, any> = {};
+      for (const lift of WENDLER_LIFTS) {
+        const isOn = configDraft[lift.onKey] !== 'off';
+        config[lift.onKey] = isOn;
+        if (isOn) {
+          const val = parseFloat(configDraft[lift.key] ?? '');
+          if (isNaN(val) || val <= 0) {
+            showMsg(`⚠️ Entre la charge pour ${lift.label}`, false, 3000);
+            return;
+          }
+          config[lift.key] = val;
+        }
+      }
+      const anyOn = WENDLER_LIFTS.some(l => config[l.onKey] !== false);
+      if (!anyOn) {
+        showMsg('⚠️ Active au moins un mouvement', false, 3000);
         return;
       }
-      handleStart({ squat: vals[0], bench: vals[1], deadlift: vals[2], ohp: vals[3] });
+      handleStart(config);
     }
   }
 
@@ -402,31 +417,39 @@ export default function ProgramDetailScreen() {
                 <>
                   <Text style={styles.configTitle}>🏋️ Tes charges maximales (1RM)</Text>
                   <Text style={styles.configSub}>
-                    Le programme calcule ton Training Max (TM = 90% du 1RM) et toutes les charges automatiquement.
+                    Active les mouvements que tu veux suivre. Le programme calcule ton Training Max (TM = 90% du 1RM) automatiquement.
                   </Text>
-                  {(
-                    [
-                      { key: 'squat',    label: '🦵 Squat' },
-                      { key: 'bench',    label: '🏋️ Développé couché' },
-                      { key: 'deadlift', label: '⬆️ Soulevé de terre' },
-                      { key: 'ohp',      label: '🙌 Développé militaire' },
-                    ] as const
-                  ).map(({ key, label }) => {
-                    const val = parseFloat(configDraft[key] ?? '');
-                    const tm  = isNaN(val) || val <= 0 ? null : Math.round(val * 0.9 / 2.5) * 2.5;
+                  {WENDLER_LIFTS.map(({ key, onKey, label }) => {
+                    const isOn = configDraft[onKey] !== 'off';
+                    const val  = parseFloat(configDraft[key] ?? '');
+                    const tm   = isOn && !isNaN(val) && val > 0 ? Math.round(val * 0.9 / 2.5) * 2.5 : null;
                     return (
                       <View key={key} style={styles.configRow}>
-                        <Text style={styles.configLabel}>{label} — 1RM (kg)</Text>
-                        <TextInput
-                          style={styles.configInput}
-                          value={configDraft[key]}
-                          onChangeText={v => setConfigDraft(p => ({ ...p, [key]: v }))}
-                          keyboardType="numeric"
-                          placeholder="ex : 100"
-                          placeholderTextColor="#444"
-                        />
-                        {tm !== null && (
-                          <Text style={styles.configHint}>TM = {tm} kg</Text>
+                        <View style={styles.configLabelRow}>
+                          <Text style={[styles.configLabel, !isOn && { color: '#444' }]}>{label}</Text>
+                          <TouchableOpacity
+                            style={[styles.toggleBtn, isOn ? styles.toggleOn : styles.toggleOff]}
+                            onPress={() => setConfigDraft(p => ({ ...p, [onKey]: isOn ? 'off' : 'on' }))}
+                          >
+                            <Text style={[styles.toggleText, isOn ? styles.toggleOnText : styles.toggleOffText]}>
+                              {isOn ? 'ON' : 'OFF'}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                        {isOn && (
+                          <>
+                            <TextInput
+                              style={styles.configInput}
+                              value={configDraft[key]}
+                              onChangeText={v => setConfigDraft(p => ({ ...p, [key]: v }))}
+                              keyboardType="numeric"
+                              placeholder="1RM en kg (ex : 100)"
+                              placeholderTextColor="#444"
+                            />
+                            {tm !== null && (
+                              <Text style={styles.configHint}>TM = {tm} kg</Text>
+                            )}
+                          </>
                         )}
                       </View>
                     );
@@ -652,10 +675,23 @@ const styles = StyleSheet.create({
   configTitle: { color: '#fff', fontSize: 17, fontWeight: '800', marginBottom: 4 },
   configSub: { color: '#777', fontSize: 13, lineHeight: 18, marginBottom: 14 },
   configRow: { marginBottom: 12 },
+  configLabelRow: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', marginBottom: 6,
+  },
   configLabel: {
     color: '#888', fontSize: 11, fontWeight: '700',
-    textTransform: 'uppercase', marginBottom: 6,
+    textTransform: 'uppercase', flex: 1,
   },
+  toggleBtn: {
+    paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 8, borderWidth: 1,
+  },
+  toggleOn: { backgroundColor: '#1a1a0a', borderColor: '#e85d04' },
+  toggleOff: { backgroundColor: '#1c1c1c', borderColor: '#333' },
+  toggleText: { fontSize: 11, fontWeight: '800' },
+  toggleOnText: { color: '#e85d04' },
+  toggleOffText: { color: '#444' },
   configInput: {
     backgroundColor: '#1c1c1c', borderRadius: 10,
     borderWidth: 1, borderColor: '#2a2a2a',

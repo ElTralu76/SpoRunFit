@@ -624,7 +624,20 @@ export type WendlerConfig = {
   bench:    number;   // 1RM Développé couché (kg)
   deadlift: number;   // 1RM Soulevé de terre (kg)
   ohp:      number;   // 1RM Développé militaire (kg)
+  // Mouvements actifs (true par défaut)
+  squat_on?:    boolean;
+  bench_on?:    boolean;
+  deadlift_on?: boolean;
+  ohp_on?:      boolean;
 };
+
+// Les 4 mouvements Wendler avec leur clé de config
+export const WENDLER_LIFTS = [
+  { key: 'squat',    onKey: 'squat_on',    label: '🦵 Squat',                liftName: 'Squat'                },
+  { key: 'bench',    onKey: 'bench_on',    label: '🏋️ Développé couché',     liftName: 'Développé couché'     },
+  { key: 'deadlift', onKey: 'deadlift_on', label: '⬆️ Soulevé de terre',      liftName: 'Soulevé de terre'     },
+  { key: 'ohp',      onKey: 'ohp_on',      label: '🙌 Développé militaire',   liftName: 'Développé militaire'  },
+] as const;
 
 function round2_5(kg: number): number {
   return Math.round(kg / 2.5) * 2.5;
@@ -632,6 +645,13 @@ function round2_5(kg: number): number {
 
 export function generateWendlerSessions(config?: WendlerConfig): ProgramSession[] {
   if (!config) return wendler531Sessions;
+
+  // Mouvements actifs (on par défaut si clé absente)
+  const activeLifts = new Set(
+    WENDLER_LIFTS
+      .filter(l => config[l.onKey] !== false)
+      .map(l => l.liftName)
+  );
 
   const liftRM: Record<string, number> = {
     'Squat':               config.squat,
@@ -655,7 +675,14 @@ export function generateWendlerSessions(config?: WendlerConfig): ProgramSession[
     return out;
   };
 
-  return wendler531Sessions.map(session => {
+  return wendler531Sessions
+    .filter(session => {
+      // Garder la séance seulement si son mouvement est actif
+      const liftName = Object.keys(liftRM).find(k => session.title.includes(k));
+      return !liftName || activeLifts.has(liftName);
+    })
+    .map((session, idx) => ({ ...session, number: idx + 1 })) // renuméroter
+    .map(session => {
     const liftName = Object.keys(liftRM).find(k => session.title.includes(k));
     if (!liftName) return session;
     const tm = round2_5(liftRM[liftName] * 0.9);
