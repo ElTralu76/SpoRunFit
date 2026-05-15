@@ -11,7 +11,7 @@ import {
   generatePavelSessions, generateWendlerSessions, WendlerConfig,
   WENDLER_LIFTS,
   generateForceStricteSessions, ForceStricteConfig,
-  FORCE_STRICTE_MOVEMENTS,
+  FORCE_STRICTE_MOVEMENTS, FS_WARMUP,
 } from '../../lib/programs';
 
 // ─── Types ────────────────────────────────────────────────
@@ -106,6 +106,10 @@ export default function ProgramDetailScreen() {
   const [showConfig, setShowConfig]   = useState(false);
   const [configDraft, setConfigDraft] = useState<Record<string, string>>({});
 
+  // Saisie des maxes après Séance 0
+  const [maxesDraft, setMaxesDraft]   = useState<Record<string, string>>({});
+  const [savingMaxes, setSavingMaxes] = useState(false);
+
   useEffect(() => { fetchUserProgram(); }, [id, session]);
 
   async function fetchUserProgram() {
@@ -149,7 +153,7 @@ export default function ProgramDetailScreen() {
       cfgType === 'pavel'
         ? { pullup_max: '5' }
         : cfgType === 'force-stricte'
-          ? { pullup: '', hspu: '', pushup: '', dips: '' }
+          ? { pullup_on: 'on', pushup_on: 'on', hspu_on: 'on', dips_on: 'on' }
           : { squat: '100', bench: '80', deadlift: '120', ohp: '60',
               squat_on: 'on', bench_on: 'on', deadlift_on: 'on', ohp_on: 'on' },
     );
@@ -188,20 +192,15 @@ export default function ProgramDetailScreen() {
       }
       handleStart(config);
     } else if (cfgType === 'force-stricte') {
-      const fsConfig: Record<string, number> = {};
-      for (const mov of FORCE_STRICTE_MOVEMENTS) {
-        const raw = configDraft[mov.key] ?? '';
-        const val = raw === '' ? 0 : parseInt(raw, 10);
-        if (isNaN(val) || val < 0) {
-          showMsg(`⚠️ Valeur invalide pour ${mov.label}`, false, 3000);
-          return;
-        }
-        fsConfig[mov.key] = val;
-      }
-      const anyActive = FORCE_STRICTE_MOVEMENTS.some(m => fsConfig[m.key] > 0);
-      if (!anyActive) {
-        showMsg('⚠️ Entre ton max sur au moins un mouvement', false, 3000);
+      const anyOn = FORCE_STRICTE_MOVEMENTS.some(m => configDraft[m.onKey] !== 'off');
+      if (!anyOn) {
+        showMsg('⚠️ Sélectionne au moins un mouvement', false, 3000);
         return;
+      }
+      const fsConfig: Record<string, any> = { needs_maxes: true };
+      for (const m of FORCE_STRICTE_MOVEMENTS) {
+        fsConfig[m.onKey] = configDraft[m.onKey] !== 'off';
+        fsConfig[m.key]   = 0;   // maxes inconnus jusqu'à la Séance 0
       }
       handleStart(fsConfig);
     }
@@ -296,8 +295,12 @@ export default function ProgramDetailScreen() {
       });
     }
 
-    const newDone   = userProgram.sessions_done + 1;
-    const isFinished = newDone >= tpl.sessions_total;
+    const newDone = userProgram.sessions_done + 1;
+    // Cas Force Stricte après Séance 0 : le programme n'est pas fini, on attend les maxes
+    const willNeedMaxes = tpl.id === 'force-stricte' &&
+      userProgram.config?.needs_maxes === true &&
+      newDone >= effectiveSessions.length;
+    const isFinished = !willNeedMaxes && newDone >= effectiveSessions.length;
 
     // 2. Créer la prochaine séance comme "planifiée" (si pas fini)
     let nextJournalId: string | null = null;
@@ -334,6 +337,49 @@ export default function ProgramDetailScreen() {
     );
   }
 
+  // ── Saisir les maxes après Séance 0 ──────────────────
+  async function handleEnterMaxes() {
+    if (!session?.user || !userProgram || !tpl) return;
+    setSavingMaxes(true);
+
+    const updatedConfig: Record<string, any> = { ...(userProgram.config ?? {}) };
+
+    // Valider et stocker les maxes pour les mouvements sélectionnés
+    for (const m of FORCE_STRICTE_MOVEMENTS) {
+      if (updatedConfig[m.onKey] === false) continue;  // mouvement exclu
+      const raw = maxesDraft[m.key] ?? '';
+      const val = raw === '' ? 0 : parseInt(raw, 10);
+      if (isNaN(val) || val < 0) {
+        showMsg(`⚠️ Valeur invalide pour ${m.label}`, false, 3000);
+        setSavingMaxes(false);
+        return;
+      }
+      updatedConfig[m.key] = val;
+    }
+
+    const anyMax = FORCE_STRICTE_MOVEMENTS.some(
+      m => updatedConfig[m.onKey] !== false && (updatedConfig[m.key] ?? 0) > 0,
+    );
+    if (!anyMax) {
+      showMsg('⚠️ Entre ton max sur au moins un mouvement', false, 3000);
+      setSavingMaxes(false);
+      return;
+    }
+
+    updatedConfig.needs_maxes = false;
+
+    const { error } = await supabase
+      .from('user_programs')
+      .update({ config: updatedConfig })
+      .eq('id', userProgram.id);
+
+    setSavingMaxes(false);
+    if (error) { showMsg(`⚠️ Erreur : ${error.message}`, false, 5000); return; }
+
+    setUserProgram({ ...userProgram, config: updatedConfig });
+    showMsg('✅ Maxes enregistrés ! Programme complet débloqué 🚀', true, 3500);
+  }
+
   // ── Gardes de rendu ───────────────────────────────────
   if (!tpl) {
     return (
@@ -354,13 +400,20 @@ export default function ProgramDetailScreen() {
   }
 
   const done       = userProgram?.sessions_done ?? 0;
-  const pct        = Math.round((done / tpl.sessions_total) * 100);
-  const curSession = effectiveSessions[done] ?? null;
   const isEnrolled = !!userProgram;
-  const isFinished = done >= tpl.sessions_total;
-  const toShow     = showAll ? effectiveSessions : effectiveSessions.slice(0, 5);
   const cfgType    = CONFIG_TYPE[tpl.id];
   const userCfg    = userProgram?.config ?? null;
+
+  // Force Stricte : Séance 0 validée mais maxes pas encore saisis
+  const needsMaxesEntry = isEnrolled &&
+    tpl.id === 'force-stricte' &&
+    userCfg?.needs_maxes === true &&
+    done >= 1;
+
+  const isFinished = !needsMaxesEntry && done >= effectiveSessions.length;
+  const pct        = needsMaxesEntry ? 100 : Math.round((done / Math.max(1, effectiveSessions.length)) * 100);
+  const curSession = effectiveSessions[done] ?? null;
+  const toShow     = showAll ? effectiveSessions : effectiveSessions.slice(0, 5);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -487,34 +540,34 @@ export default function ProgramDetailScreen() {
 
               {cfgType === 'force-stricte' && (
                 <>
-                  <Text style={styles.configTitle}>🤸 Tes maxes actuels</Text>
+                  <Text style={styles.configTitle}>🤸 Choisis tes mouvements</Text>
                   <Text style={styles.configSub}>
-                    Entre ton max de reps sur chaque mouvement. Laisse vide ou mets 0 pour exclure un mouvement du programme.
+                    Sélectionne les mouvements à inclure. Une <Text style={{ color: '#e85d04', fontWeight: '700' }}>Séance 0</Text> te permettra de tester tes maxes — le programme se calera ensuite dessus.
                   </Text>
-                  {FORCE_STRICTE_MOVEMENTS.map(({ key, label }) => {
-                    const val = parseInt(configDraft[key] ?? '', 10);
-                    const excluded = configDraft[key] === '' || configDraft[key] === '0' || val === 0;
+                  {FORCE_STRICTE_MOVEMENTS.map(({ key, onKey, label, session }) => {
+                    const isOn = configDraft[onKey] !== 'off';
                     return (
                       <View key={key} style={styles.configRow}>
-                        <Text style={[styles.configLabel, excluded && { color: '#444' }]}>
-                          {label}{excluded ? '  — exclu' : ''}
-                        </Text>
-                        <TextInput
-                          style={[styles.configInput, excluded && { opacity: 0.4 }]}
-                          value={configDraft[key]}
-                          onChangeText={v => setConfigDraft(p => ({ ...p, [key]: v }))}
-                          keyboardType="number-pad"
-                          placeholder="0 = exclu du programme"
-                          placeholderTextColor="#444"
-                        />
-                        {!excluded && !isNaN(val) && val > 0 && (
-                          <Text style={styles.configHint}>
-                            Sem 1 : {Math.max(1, Math.round(val * 0.5))} reps × 3 séries · Sem 7 : {Math.max(1, Math.round(val * 0.75))} reps × 4 séries
-                          </Text>
-                        )}
+                        <View style={styles.configLabelRow}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.configLabel, !isOn && { color: '#444' }]}>{label}</Text>
+                            <Text style={{ color: '#555', fontSize: 11, marginTop: 2 }}>Séance {session}</Text>
+                          </View>
+                          <TouchableOpacity
+                            style={[styles.toggleBtn, isOn ? styles.toggleOn : styles.toggleOff]}
+                            onPress={() => setConfigDraft(p => ({ ...p, [onKey]: isOn ? 'off' : 'on' }))}
+                          >
+                            <Text style={[styles.toggleText, isOn ? styles.toggleOnText : styles.toggleOffText]}>
+                              {isOn ? 'ON' : 'OFF'}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     );
                   })}
+                  <Text style={styles.configHint}>
+                    💡 Après la Séance 0, tu saisis tes maxes et le programme complet (8 semaines) se génère automatiquement.
+                  </Text>
                 </>
               )}
 
@@ -578,18 +631,24 @@ export default function ProgramDetailScreen() {
         <View style={styles.cfgBadge}>
           <Text style={styles.cfgBadgeText}>
             🤸{' '}
-            {FORCE_STRICTE_MOVEMENTS.filter(m => (userCfg[m.key] ?? 0) > 0)
-              .map(m => `${m.label.split(' ').slice(1).join(' ')} ×${userCfg[m.key]}`)
-              .join(' · ')}
+            {needsMaxesEntry
+              ? FORCE_STRICTE_MOVEMENTS
+                  .filter(m => userCfg[m.onKey] !== false)
+                  .map(m => m.movName)
+                  .join(' · ') + ' — maxes à saisir'
+              : FORCE_STRICTE_MOVEMENTS
+                  .filter(m => userCfg[m.onKey] !== false && (userCfg[m.key] ?? 0) > 0)
+                  .map(m => `${m.movName} ×${userCfg[m.key]}`)
+                  .join(' · ')}
           </Text>
         </View>
       )}
 
       {/* Progression */}
-      {isEnrolled && !isFinished && (
+      {isEnrolled && !isFinished && !needsMaxesEntry && (
         <View style={styles.progressCard}>
           <View style={styles.progressHeader}>
-            <Text style={styles.progressTitle}>Séance {done + 1} / {tpl.sessions_total}</Text>
+            <Text style={styles.progressTitle}>Séance {done + 1} / {effectiveSessions.length}</Text>
             <Text style={styles.progressPct}>{pct}%</Text>
           </View>
           <View style={styles.progressBar}>
@@ -603,10 +662,48 @@ export default function ProgramDetailScreen() {
         </View>
       )}
 
+      {/* ── Saisie des maxes après Séance 0 ── */}
+      {needsMaxesEntry && (
+        <View style={styles.maxesCard}>
+          <Text style={styles.maxesTitle}>🎯 Entre tes résultats de la Séance 0</Text>
+          <Text style={styles.maxesSub}>
+            Ces maxes servent de base pour calculer toutes les séances des 8 semaines à venir.
+          </Text>
+          {FORCE_STRICTE_MOVEMENTS
+            .filter(m => userCfg?.[m.onKey] !== false)
+            .map(({ key, label }) => (
+              <View key={key} style={styles.configRow}>
+                <Text style={styles.configLabel}>{label}</Text>
+                <TextInput
+                  style={styles.configInput}
+                  value={maxesDraft[key] ?? ''}
+                  onChangeText={v => setMaxesDraft(p => ({ ...p, [key]: v }))}
+                  keyboardType="number-pad"
+                  placeholder="Nombre de reps max"
+                  placeholderTextColor="#444"
+                />
+              </View>
+            ))}
+          {feedback ? (
+            <View style={[styles.feedbackBox, feedbackOk ? styles.feedbackGreen : styles.feedbackRed]}>
+              <Text style={feedbackOk ? styles.feedbackGreenText : styles.feedbackRedText}>{feedback}</Text>
+            </View>
+          ) : null}
+          <TouchableOpacity style={styles.startBtn} onPress={handleEnterMaxes} disabled={savingMaxes}>
+            {savingMaxes
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.startBtnText}>🚀 Démarrer le programme complet →</Text>
+            }
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Séance du jour */}
-      {isEnrolled && !isFinished && curSession && (
+      {isEnrolled && !isFinished && !needsMaxesEntry && curSession && (
         <View style={styles.currentCard}>
-          <Text style={styles.currentLabel}>Séance du jour</Text>
+          <Text style={styles.currentLabel}>
+            {curSession.title.includes('Séance 0') ? 'À faire maintenant' : 'Séance du jour'}
+          </Text>
           <Text style={styles.currentTitle}>{curSession.title}</Text>
           {curSession.notes && <Text style={styles.currentNotes}>{curSession.notes}</Text>}
 
@@ -635,7 +732,9 @@ export default function ProgramDetailScreen() {
             <TouchableOpacity style={styles.doneBtn} onPress={handleCompleteSession} disabled={completing}>
               {completing
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.doneBtnText}>✅ Séance terminée !</Text>
+                : <Text style={styles.doneBtnText}>
+                    {curSession.title.includes('Séance 0') ? '✅ Séance 0 terminée — saisir mes maxes →' : '✅ Séance terminée !'}
+                  </Text>
               }
             </TouchableOpacity>
           )}
@@ -781,6 +880,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#e85d04', alignItems: 'center',
   },
   configStartText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+
+  // ── Saisie maxes après Séance 0 ───────────────────────
+  maxesCard: {
+    backgroundColor: '#141414', borderRadius: 16,
+    borderWidth: 1, borderColor: '#facc15',
+    padding: 18, marginBottom: 16, gap: 12,
+  },
+  maxesTitle: { color: '#facc15', fontSize: 17, fontWeight: '800', marginBottom: 2 },
+  maxesSub:   { color: '#777', fontSize: 13, lineHeight: 18, marginBottom: 6 },
 
   // ── Bouton démarrer ────────────────────────────────────
   startBtn: {

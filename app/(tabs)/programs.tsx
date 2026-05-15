@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, ActivityIndicator,
+  TouchableOpacity, ActivityIndicator, Alert, Platform,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ type UserProgram = {
   start_date: string;
   sessions_done: number;
   active: boolean;
+  config?: Record<string, any> | null;
 };
 
 type MyCustomProgram = {
@@ -49,7 +50,8 @@ export default function ProgramsScreen() {
   const { session } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
-  const [userPrograms, setUserPrograms] = useState<UserProgram[]>([]);
+  const [userPrograms, setUserPrograms]       = useState<UserProgram[]>([]);
+  const [pausedPrograms, setPausedPrograms]   = useState<UserProgram[]>([]);
   const [myCustomPrograms, setMyCustomPrograms] = useState<MyCustomProgram[]>([]);
   const [loading, setLoading] = useState(true);
   const styles = useMemo(() => makeStyles(theme), [theme]);
@@ -63,18 +65,21 @@ export default function ProgramsScreen() {
     setLoading(true);
     const [upRes, cpRes] = await Promise.all([
       supabase.from('user_programs')
-        .select('id, program_id, start_date, sessions_done, active')
-        .eq('user_id', session.user.id).eq('active', true),
+        .select('id, program_id, start_date, sessions_done, active, config')
+        .eq('user_id', session.user.id),
       supabase.from('custom_programs')
         .select('id, name, emoji, level, duration_weeks, sessions_per_week, sessions, share_token')
         .eq('author_id', session.user.id)
         .order('created_at', { ascending: false }),
     ]);
-    const ups = upRes.data ?? [];
+    const all = upRes.data ?? [];
+    const ups     = all.filter(u => u.active === true);
+    const paused  = all.filter(u => u.active === false && u.config?.paused === true);
     setUserPrograms(ups);
+    setPausedPrograms(paused);
 
-    // Récupère aussi les programmes custom dans lesquels l'user est inscrit
-    const customIds = ups
+    // Récupère aussi les programmes custom dans lesquels l'user est inscrit (actifs + pausés)
+    const customIds = [...ups, ...paused]
       .map(u => u.program_id)
       .filter(id => !PROGRAMS.find(p => p.id === id)); // IDs non trouvés dans le catalogue = custom
 
@@ -93,6 +98,41 @@ export default function ProgramsScreen() {
     }
     setMyCustomPrograms(allCustom);
     setLoading(false);
+  }
+
+  async function handlePause(up: UserProgram) {
+    await supabase.from('user_programs')
+      .update({ active: false, config: { ...(up.config ?? {}), paused: true } })
+      .eq('id', up.id);
+    fetchAll();
+  }
+
+  async function handleResume(up: UserProgram) {
+    const updatedConfig = { ...(up.config ?? {}) };
+    delete updatedConfig.paused;
+    await supabase.from('user_programs')
+      .update({ active: true, config: updatedConfig })
+      .eq('id', up.id);
+    fetchAll();
+  }
+
+  async function handleAbandon(up: UserProgram) {
+    const doAbandon = async () => {
+      await supabase.from('user_programs').delete().eq('id', up.id);
+      fetchAll();
+    };
+    if (Platform.OS === 'web') {
+      if (window.confirm('Abandonner ce programme ? Cette action est irréversible.')) doAbandon();
+    } else {
+      Alert.alert(
+        'Abandonner le programme',
+        'Cette action est irréversible. Tu pourras le recommencer depuis le catalogue.',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Abandonner', style: 'destructive', onPress: doAbandon },
+        ],
+      );
+    }
   }
 
   function getProgress(up: UserProgram) {
@@ -114,7 +154,8 @@ export default function ProgramsScreen() {
     return { done: up.sessions_done, total: 0, pct: 0, name: '—', emoji: '💪', nextTitle: null };
   }
 
-  const activeIds = new Set(userPrograms.map(u => u.program_id));
+  const activeIds  = new Set(userPrograms.map(u => u.program_id));
+  const pausedIds  = new Set(pausedPrograms.map(u => u.program_id));
 
   if (loading) {
     return (
@@ -184,8 +225,6 @@ export default function ProgramsScreen() {
             const { done, total, pct, name, emoji, nextTitle } = getProgress(up);
             if (!total) return null;
             const finished = done >= total;
-
-            // Navigation : catalogue vs custom
             const isCatalog = !!PROGRAMS.find(p => p.id === up.program_id);
             const cp = myCustomPrograms.find(p => p.id === up.program_id);
             const destination = isCatalog
@@ -193,44 +232,109 @@ export default function ProgramsScreen() {
               : cp ? `/program/share/${cp.share_token}` : null;
 
             return (
-              <TouchableOpacity
-                key={up.id}
-                style={styles.activeCard}
-                onPress={() => destination && router.push(destination as any)}
-                activeOpacity={0.85}
-              >
-                <View style={styles.activeCardTop}>
-                  <View style={styles.activeEmojiWrap}>
-                    <Text style={styles.activeEmoji}>{emoji}</Text>
+              <View key={up.id} style={styles.activeCard}>
+                <TouchableOpacity
+                  onPress={() => destination && router.push(destination as any)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.activeCardTop}>
+                    <View style={styles.activeEmojiWrap}>
+                      <Text style={styles.activeEmoji}>{emoji}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.activeName}>{name}</Text>
+                      <Text style={styles.activeMeta}>
+                        Séance {Math.min(done + 1, total)}/{total}
+                      </Text>
+                    </View>
+                    <View style={styles.pctBadge}>
+                      <Text style={styles.pctText}>{pct}%</Text>
+                    </View>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.activeName}>{name}</Text>
-                    <Text style={styles.activeMeta}>
-                      Séance {Math.min(done + 1, total)}/{total}
-                    </Text>
-                  </View>
-                  <View style={styles.pctBadge}>
-                    <Text style={styles.pctText}>{pct}%</Text>
-                  </View>
-                </View>
 
-                <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
-                </View>
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
+                  </View>
 
-                {!finished && nextTitle && (
-                  <View style={styles.nextSessionBox}>
-                    <Text style={styles.nextSessionLabel}>PROCHAINE</Text>
-                    <Text style={styles.nextSessionTitle}>{nextTitle}</Text>
+                  {!finished && nextTitle && (
+                    <View style={styles.nextSessionBox}>
+                      <Text style={styles.nextSessionLabel}>PROCHAINE</Text>
+                      <Text style={styles.nextSessionTitle}>{nextTitle}</Text>
+                    </View>
+                  )}
+                  {finished && (
+                    <View style={[styles.nextSessionBox, styles.nextSessionFinished]}>
+                      <Ionicons name="checkmark-circle" size={16} color="#4ade80" />
+                      <Text style={styles.finishedText}>Programme terminé ! 🏁</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                {/* Actions Pause / Abandon */}
+                {!finished && (
+                  <View style={styles.cardActions}>
+                    <TouchableOpacity style={styles.pauseBtn} onPress={() => handlePause(up)}>
+                      <Ionicons name="pause-circle-outline" size={14} color={theme.t2} />
+                      <Text style={styles.pauseBtnText}>Mettre en pause</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.abandonBtn} onPress={() => handleAbandon(up)}>
+                      <Ionicons name="close-circle-outline" size={14} color="#f87171" />
+                      <Text style={styles.abandonBtnText}>Abandonner</Text>
+                    </TouchableOpacity>
                   </View>
                 )}
-                {finished && (
-                  <View style={[styles.nextSessionBox, styles.nextSessionFinished]}>
-                    <Ionicons name="checkmark-circle" size={16} color="#4ade80" />
-                    <Text style={styles.finishedText}>Programme terminé ! 🏁</Text>
+              </View>
+            );
+          })}
+        </>
+      )}
+
+      {/* ── Programmes en pause ── */}
+      {pausedPrograms.length > 0 && (
+        <>
+          <Text style={styles.sectionLabel}>En pause</Text>
+          {pausedPrograms.map(up => {
+            const { done, total, pct, name, emoji } = getProgress(up);
+            if (!total) return null;
+            const isCatalog = !!PROGRAMS.find(p => p.id === up.program_id);
+            const cp = myCustomPrograms.find(p => p.id === up.program_id);
+            const destination = isCatalog
+              ? `/program/${up.program_id}`
+              : cp ? `/program/share/${cp.share_token}` : null;
+
+            return (
+              <View key={up.id} style={[styles.activeCard, styles.pausedCard]}>
+                <TouchableOpacity
+                  onPress={() => destination && router.push(destination as any)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.activeCardTop}>
+                    <View style={[styles.activeEmojiWrap, styles.pausedEmojiWrap]}>
+                      <Text style={styles.activeEmoji}>{emoji}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.activeName, { color: theme.t2 }]}>{name}</Text>
+                      <Text style={styles.activeMeta}>Séance {done}/{total} · en pause</Text>
+                    </View>
+                    <View style={[styles.pctBadge, styles.pausedPctBadge]}>
+                      <Text style={[styles.pctText, { color: theme.t2 }]}>{pct}%</Text>
+                    </View>
                   </View>
-                )}
-              </TouchableOpacity>
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, styles.pausedProgressFill, { width: `${pct}%` as any }]} />
+                  </View>
+                </TouchableOpacity>
+                <View style={styles.cardActions}>
+                  <TouchableOpacity style={[styles.pauseBtn, styles.resumeBtn]} onPress={() => handleResume(up)}>
+                    <Ionicons name="play-circle-outline" size={14} color={theme.orange} />
+                    <Text style={[styles.pauseBtnText, { color: theme.orange }]}>Reprendre</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.abandonBtn} onPress={() => handleAbandon(up)}>
+                    <Ionicons name="close-circle-outline" size={14} color="#f87171" />
+                    <Text style={styles.abandonBtnText}>Abandonner</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             );
           })}
         </>
@@ -243,7 +347,7 @@ export default function ProgramsScreen() {
       </View>
 
       {PROGRAMS.map(tpl => {
-        const isActive = activeIds.has(tpl.id);
+        const isActive = activeIds.has(tpl.id) || pausedIds.has(tpl.id);
         const catTag = CATEGORY_TAG[tpl.id];
         const levelColor = LEVEL_COLOR[tpl.level] ?? '#888';
 
@@ -362,6 +466,32 @@ function makeStyles(c: ThemeColors) {
     nextSessionLabel: { color: c.t3, fontSize: 9, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5 },
     nextSessionTitle: { color: c.t1, fontSize: 13, fontWeight: '600', flex: 1 },
     finishedText: { color: '#4ade80', fontSize: 13, fontWeight: '700' },
+
+    // ── Actions sur les cartes en cours ───────────────────
+    cardActions: {
+      flexDirection: 'row', gap: 8,
+      borderTopWidth: 1, borderTopColor: c.border,
+      paddingTop: 12, marginTop: 4,
+    },
+    pauseBtn: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+      backgroundColor: c.bg, borderRadius: 10,
+      paddingVertical: 9, borderWidth: 1, borderColor: c.border,
+    },
+    resumeBtn: { borderColor: c.orange + '40', backgroundColor: c.orange + '08' },
+    pauseBtnText: { color: c.t2, fontSize: 12, fontWeight: '600' },
+    abandonBtn: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+      backgroundColor: '#f8717108', borderRadius: 10,
+      paddingVertical: 9, borderWidth: 1, borderColor: '#f8717128',
+    },
+    abandonBtnText: { color: '#f87171', fontSize: 12, fontWeight: '600' },
+
+    // ── Carte pausée ──────────────────────────────────────
+    pausedCard: { borderColor: c.border, opacity: 0.85 },
+    pausedEmojiWrap: { backgroundColor: c.surf2, borderColor: c.border2 },
+    pausedPctBadge: { backgroundColor: c.bg, borderColor: c.border },
+    pausedProgressFill: { backgroundColor: c.t3 },
 
     catalogHeader: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

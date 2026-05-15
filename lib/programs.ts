@@ -679,7 +679,7 @@ export function generateWendlerSessions(config?: WendlerConfig): ProgramSession[
     .filter(session => {
       // Garder la séance seulement si son mouvement est actif
       const liftName = Object.keys(liftRM).find(k => session.title.includes(k));
-      return !liftName || activeLifts.has(liftName);
+      return !liftName || (activeLifts as Set<string>).has(liftName);
     })
     .map((session, idx) => ({ ...session, number: idx + 1 })) // renuméroter
     .map(session => {
@@ -706,18 +706,34 @@ export function generateWendlerSessions(config?: WendlerConfig): ProgramSession[
 // ─── Générateur Force Stricte (calisthenics) ─────────────
 
 export type ForceStricteConfig = {
-  pullup:  number;   // max reps Pull-Ups  (0 = exclu)
-  hspu:    number;   // max reps HSPU      (0 = exclu)
-  pushup:  number;   // max reps Push-Ups  (0 = exclu)
-  dips:    number;   // max reps Dips      (0 = exclu)
+  // Sélection des mouvements (true par défaut si clé absente)
+  pullup_on?: boolean;
+  pushup_on?: boolean;
+  hspu_on?:   boolean;
+  dips_on?:   boolean;
+  // Max reps mesurés en Séance 0 (0 = pas encore connu)
+  pullup:  number;
+  hspu:    number;
+  pushup:  number;
+  dips:    number;
+  // true = Séance 0 pas encore faite (maxes à entrer après)
+  needs_maxes?: boolean;
 };
 
 export const FORCE_STRICTE_MOVEMENTS = [
-  { key: 'pullup' as const,  label: '🔝 Pull-Ups',              session: 'A' as const },
-  { key: 'pushup' as const,  label: '💪 Push-Ups',              session: 'A' as const },
-  { key: 'hspu'   as const,  label: '🙃 HandStand Push-Ups',    session: 'B' as const },
-  { key: 'dips'   as const,  label: '⬇️ Dips',                  session: 'B' as const },
+  { key: 'pullup' as const, onKey: 'pullup_on' as const, movName: 'Pull-Ups',           label: '🔝 Pull-Ups',           session: 'A' as const },
+  { key: 'pushup' as const, onKey: 'pushup_on' as const, movName: 'Push-Ups',           label: '💪 Push-Ups',           session: 'A' as const },
+  { key: 'hspu'   as const, onKey: 'hspu_on'   as const, movName: 'HandStand Push-Ups', label: '🙃 HandStand Push-Ups', session: 'B' as const },
+  { key: 'dips'   as const, onKey: 'dips_on'   as const, movName: 'Dips',               label: '⬇️ Dips',               session: 'B' as const },
 ] as const;
+
+// Échauffement standard Force Stricte (inclus dans chaque séance d'entraînement)
+export const FS_WARMUP: ProgramMovement = {
+  name: '🔥 Échauffement',
+  sets: 1,
+  reps: '6-8 min',
+  notes: 'Jumping jacks 90s · Cercles bras 30s × 2 · Dead hang 20s × 3 · Pompes légères × 8',
+};
 
 // Progression sur 8 semaines : [sets, % du max]
 const FS_PROGRESSION: [number, number][] = [
@@ -743,61 +759,87 @@ const FS_WEEK_NOTES: (string | undefined)[] = [
 ];
 
 export function generateForceStricteSessions(config: ForceStricteConfig): ProgramSession[] {
-  const sessions: ProgramSession[] = [];
-  let num = 1;
+  // Mouvements sélectionnés (on par défaut si clé absente)
+  const selected = FORCE_STRICTE_MOVEMENTS.filter(m => config[m.onKey] !== false);
+
+  // ── Séance 0 : test des maxes (toujours en première position) ──
+  const seance0: ProgramSession = {
+    number: 1,
+    title: '🧪 Séance 0 — Test des maxes',
+    notes: 'Échauffement complet avant chaque mouvement. Repose-toi 5 min entre chaque test. Note bien tes résultats — ils servent de base pour les 8 semaines du programme.',
+    movements: [
+      FS_WARMUP,
+      ...selected.map(m => ({
+        name: m.movName,
+        sets: 1,
+        reps: 'MAX',
+        notes: '🎯 Note ton max de reps strictes · repos 5 min avant le test',
+      })),
+    ],
+  };
+
+  // Si les maxes ne sont pas encore connus → retourner seulement Séance 0
+  const anyMax = selected.some(m => (config[m.key] ?? 0) > 0);
+  if (config.needs_maxes !== false || !anyMax) {
+    return [seance0];
+  }
+
+  // ── Programme 8 semaines basé sur les maxes réels ─────────────
+  const sessions: ProgramSession[] = [seance0];
+  let num = 2;
 
   for (let w = 0; w < 8; w++) {
     const [sets, pct] = FS_PROGRESSION[w];
     const weekNote = FS_WEEK_NOTES[w];
 
-    // Session A : Pull-Ups + Push-Ups
-    const movA: ProgramMovement[] = [];
-    if (config.pullup > 0) {
-      const reps = Math.max(1, Math.round(config.pullup * pct));
-      movA.push({ name: 'Pull-Ups', sets, reps: String(reps),
-        notes: `${reps} reps strictes · ton max = ${config.pullup} · repos 2-3 min entre séries` });
+    // Séance A : Pull-Ups + Push-Ups (avec échauffement)
+    const movA: ProgramMovement[] = [FS_WARMUP];
+    for (const m of selected.filter(s => s.session === 'A')) {
+      const max = config[m.key] ?? 0;
+      if (max > 0) {
+        const reps = Math.max(1, Math.round(max * pct));
+        movA.push({
+          name: m.movName, sets, reps: String(reps),
+          notes: `${reps} reps strictes · ton max = ${max} · repos ${m.key === 'pullup' ? '2-3 min' : '90 sec'} entre séries`,
+        });
+      }
     }
-    if (config.pushup > 0) {
-      const reps = Math.max(1, Math.round(config.pushup * pct));
-      movA.push({ name: 'Push-Ups', sets, reps: String(reps),
-        notes: `${reps} reps strictes · ton max = ${config.pushup} · repos 90 sec entre séries` });
-    }
-    if (movA.length > 0) {
+    if (movA.length > 1) {
       sessions.push({ number: num++, title: `Sem ${w + 1} — Séance A`, notes: weekNote, movements: movA });
     }
 
-    // Session B : HSPU + Dips
-    const movB: ProgramMovement[] = [];
-    if (config.hspu > 0) {
-      const reps = Math.max(1, Math.round(config.hspu * pct));
-      movB.push({ name: 'HandStand Push-Ups', sets, reps: String(reps),
-        notes: `${reps} reps strictes · ton max = ${config.hspu} · repos 2-3 min entre séries` });
+    // Séance B : HSPU + Dips (avec échauffement)
+    const movB: ProgramMovement[] = [FS_WARMUP];
+    for (const m of selected.filter(s => s.session === 'B')) {
+      const max = config[m.key] ?? 0;
+      if (max > 0) {
+        const reps = Math.max(1, Math.round(max * pct));
+        movB.push({
+          name: m.movName, sets, reps: String(reps),
+          notes: `${reps} reps strictes · ton max = ${max} · repos ${m.key === 'hspu' ? '2-3 min' : '90 sec'} entre séries`,
+        });
+      }
     }
-    if (config.dips > 0) {
-      const reps = Math.max(1, Math.round(config.dips * pct));
-      movB.push({ name: 'Dips', sets, reps: String(reps),
-        notes: `${reps} reps strictes · ton max = ${config.dips} · repos 90 sec entre séries` });
-    }
-    if (movB.length > 0) {
+    if (movB.length > 1) {
       sessions.push({ number: num++, title: `Sem ${w + 1} — Séance B`, notes: weekNote, movements: movB });
     }
   }
 
-  // Séance finale : Test Semaine 9
-  const testMov: ProgramMovement[] = [];
-  if (config.pullup > 0) testMov.push({ name: 'Pull-Ups',           sets: 1, reps: 'MAX',
-    notes: `🎯 Objectif : dépasser ${config.pullup} · repos 5 min avant le test` });
-  if (config.pushup > 0) testMov.push({ name: 'Push-Ups',           sets: 1, reps: 'MAX',
-    notes: `🎯 Objectif : dépasser ${config.pushup} · repos 5 min avant le test` });
-  if (config.hspu > 0)   testMov.push({ name: 'HandStand Push-Ups', sets: 1, reps: 'MAX',
-    notes: `🎯 Objectif : dépasser ${config.hspu} · repos 5 min avant le test` });
-  if (config.dips > 0)   testMov.push({ name: 'Dips',               sets: 1, reps: 'MAX',
-    notes: `🎯 Objectif : dépasser ${config.dips} · repos 5 min avant le test` });
-
+  // ── Test final : Semaine 9 ─────────────────────────────────────
+  const testMov: ProgramMovement[] = [FS_WARMUP];
+  for (const m of selected) {
+    const max = config[m.key] ?? 0;
+    if (max > 0) {
+      testMov.push({
+        name: m.movName, sets: 1, reps: 'MAX',
+        notes: `🎯 Objectif : dépasser ${max} · repos 5 min avant le test`,
+      });
+    }
+  }
   sessions.push({
     number: num,
     title: '🏆 Sem 9 — Test Final',
-    notes: 'Repose-toi 2-3 jours avant cette séance. Teste chaque mouvement à fond reposé, dans l\'ordre indiqué. Compare avec tes valeurs de départ !',
+    notes: 'Repose-toi 2-3 jours avant cette séance. Teste chaque mouvement à fond reposé. Compare avec tes valeurs de départ !',
     movements: testMov,
   });
 
